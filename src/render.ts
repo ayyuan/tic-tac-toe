@@ -1,4 +1,4 @@
-import fontTexture from './fontTexture';
+import textureFont from './textureFont';
 import gl from './gl';
 import programState from './programs/programState';
 import programTicTacToe from './programs/programTicTacToe';
@@ -74,7 +74,7 @@ export default function render() {
   gl.uniform1i(tictactoeLocations.uState, stateTexUnit);
 
   gl.activeTexture(gl.TEXTURE0 + fontTexUnit);
-  gl.bindTexture(gl.TEXTURE_2D, fontTexture);
+  gl.bindTexture(gl.TEXTURE_2D, textureFont);
   gl.uniform1i(tictactoeLocations.uFont, fontTexUnit);
 
   gl.uniform2f(tictactoeLocations.uResolution, gl.canvas.width, gl.canvas.height);

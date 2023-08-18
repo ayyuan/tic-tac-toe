@@ -1,4 +1,4 @@
-import { PluginOption } from 'vite';
+import { PluginOption, transformWithEsbuild } from 'vite';
 import { resolve, sep } from 'path';
 import { readFileSync } from 'fs';
 
@@ -25,9 +25,11 @@ export default function shaderPlugin(): PluginOption {
         return readFileSync(shader, 'utf8');
       });
 
-      return {
-        code: `export default \`${ result }\`;`,
-      };
+      return transformWithEsbuild(result, id, {
+        format: 'esm',
+        loader: 'text',
+        sourcemap: 'external',
+      })
     },
   }
 }

@@ -22,13 +22,22 @@ const float WIN         = 1.;
 const float TIE         = 0.;
 const float LOSE        = -1.;
 
+// states for reset()
+float INIT        = 0.;
+float NEW_ROUND   = 1.;
+float TOGGLE_MODE = 2.;
+
 const ivec2 NO_ANIMATE = ivec2(-1);
 float ANIMATE_DURATION = 0.250; // in seconds
+
+const float TEXT_RATIO = 2.;
+const vec2 TEXT_SCALE  = 0.05 * vec2(1.,TEXT_RATIO);
 
 #define STATE              \
     BOOL(isYourTurn)       \
     BOOL(isX)              \
     BOOL(youStartPrevGame) \
+    BOOL(isEasyMode)       \
     FLOAT(score)           \
     FLOAT(wonAmount)       \
     FLOAT(lostAmount)      \
@@ -48,6 +57,37 @@ STATE
 #undef FLOAT
 #undef IVEC2
 #undef MAT3
+
+void reset(float state) {
+    if (state == NEW_ROUND) {
+        youStartPrevGame = !youStartPrevGame;
+        isYourTurn = youStartPrevGame;
+    } else {
+        isYourTurn = youStartPrevGame = true;
+    }
+
+    if (state == TOGGLE_MODE) {
+        isEasyMode = !isEasyMode;
+    } else if (state == INIT) {
+        isEasyMode = true;
+    }
+
+    if (state == INIT || state == TOGGLE_MODE) {
+        wonAmount = lostAmount = 0.;
+    }
+
+    isX = true;
+    score = NA;
+    
+    animate = NO_ANIMATE;
+    boardTime = mat3(0.);
+    
+    board = mat3(
+        _, _, _,
+        _, _, _,
+        _, _, _
+    );
+}
 
 // Set the global variables to their appropriate values
 void loadState() {

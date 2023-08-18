@@ -17,6 +17,7 @@ const stateLocations = {
   uLut: gl.getUniformLocation(programState, 'uLut'),
   uMouse: gl.getUniformLocation(programState, 'uMouse'),
   uTimeDelta: gl.getUniformLocation(programState, 'uTimeDelta'),
+  uFrame: gl.getUniformLocation(programState, 'uFrame'),
 };
 
 // uniform vec3 uMouse
@@ -30,6 +31,9 @@ canvas.addEventListener('pointerup', (ev) => {
   mousePosY = Math.floor(canvas.height - (ev.clientY - rect.top) / (rect.bottom - rect.top) * canvas.height);
   isMouseUp = 1.; // > 0 means true
 });
+
+// uniform uint uFrame
+let frame = 0;
 
 // texture unit locations
 const stateTexUnit = 0;
@@ -49,6 +53,7 @@ export default function render(deltaTime: number) {
   gl.bindTexture(gl.TEXTURE_2D, textureLut);
   gl.uniform1i(stateLocations.uLut, lutTexUnit);
 
+  gl.uniform1ui(stateLocations.uFrame, frame++);
   gl.uniform1f(stateLocations.uTimeDelta, deltaTime / 1000);
   gl.uniform2f(stateLocations.uResolution, gl.canvas.width, gl.canvas.height);
   gl.uniform3f(

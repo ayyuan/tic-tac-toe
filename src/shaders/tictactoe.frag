@@ -36,11 +36,6 @@ const vec3 LOSE_TEXT_COL = vec3(1, 0, 0);
 const vec3 WIN_TEXT_COL = vec3(0, 1, 0);
 const vec3 TIE_TEXT_COL = vec3(1, 0, 1);
 
-const float TEXT_BLUR = 15.;
-const float TEXT_RATIO = 2.;
-const vec2 TEXT_SCALE = 0.05 * vec2(1.,TEXT_RATIO);
-const vec2 GO_TEXT_SCALE = 0.2 * vec2(1.,TEXT_RATIO);
-
 const float LINE_THICKNESS = 0.003;
 const float LINE_BLUR = 2.5;
 const vec3 LINE_COL = vec3(1., 0.5, 0.);
@@ -49,6 +44,9 @@ const float PIECE_SIZE = 0.08;
 float X_BOUND = 0.;
 
 #include "./common.glsl"
+
+const float TEXT_BLUR = 15.;
+const vec2 GO_TEXT_SCALE = 0.2 * vec2(1.,TEXT_RATIO);
 
 // https://iquilezles.org/articles/distfunctions2d/
 float lineSDF(in vec2 p, in vec2 a, in vec2 b) {
@@ -200,11 +198,16 @@ void drawText(vec2 p, inout vec3 col) {
         q.x = (q.x - .5) / TEXT_RATIO + .5;
         drawNumber(q, lostAmount, vec3(1.), col);
     } else {
-        // draw "Hard Mode"
+        // draw "Easy Mode" / "Hard Mode"
         p -= -4.5 * TEXT_SCALE;
         t = floor(p / TEXT_SCALE + 1e-6);
-        v = t.y == 0. ? ( t.x < 4. ? 1146241352u : ( t.x < 8. ? 1146047776u : 69u ) ) : v;
-        v = t.x >= 0. && t.x < 12. ? v : 0u;
+        if (isEasyMode) {
+            v = t.y == 0. ? ( t.x < 4. ? 2037604677u : ( t.x < 8. ? 1685015840u : 101u ) ) : v;
+            v = t.x >= 0. && t.x < 12. ? v : 0u;
+        } else {
+            v = t.y == 0. ? ( t.x < 4. ? 1685217608u : ( t.x < 8. ? 1685015840u : 101u ) ) : v;
+            v = t.x >= 0. && t.x < 12. ? v : 0u;
+        }
     }
 
     // extract character

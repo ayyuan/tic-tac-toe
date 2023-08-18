@@ -14,20 +14,6 @@ out float outColor;
 
 void main() {
     // initialize data
-    isYourTurn = isX = true;
-    youStartPrevGame = true;
-    score = NA;
-    
-    wonAmount = lostAmount = 0.;
-
-    animate = NO_ANIMATE;
-    boardTime = mat3(0.);
-    
-    board = mat3(
-        _, _, _,
-        _, _, _,
-        _, _, _
-    );
-
+    reset(INIT);
     storeState(outColor);
 }

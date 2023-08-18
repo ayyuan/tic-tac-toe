@@ -110,80 +110,82 @@ void checkBoard() {
     tieAmount += 1.0;
 }
 
+void move(int row, int col) {
+    board[row][col] = isX ? X : O;
+    isX = !isX;
+    isYourTurn = !isYourTurn;
+}
+
+void move(int pos) {
+    int row = pos / 3;
+    int col = pos - 3 * row;
+    move(row, col);
+}
+
+int encoding() {
+    int enc = 0;
+    int power = 1;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (board[i][j] == X) {
+                enc += 1 * power;
+            } else if (board[i][j] == O) {
+                enc += 2 * power;
+            }
+            power *= 3;
+        }
+    }
+    return enc;
+}
+
 void main() {
     loadState();
 
     if (!isYourTurn && score == NA) {
         // AI chooses move
-        int encoding = 0;
-        int power = 1;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                if (board[i][j] == X) {
-                    encoding += 1 * power;
-                } else if (board[i][j] == O) {
-                    encoding += 2 * power;
-                }
-                power *= 3;
-            }
-        }
-
+        // encoding the board so we can query our minimax LUT texture
+        int enc = encoding();
         int w = textureSize(uLut, 0).x;
-        int bestMove = int( texelFetch(uLut, ivec2(encoding % w, encoding / w), 0).r );
-        int row = bestMove / 3;
-        int col = bestMove - 3 * row;
-        board[row][col] = isX ? X : O;
-        isX = !isX;
-        isYourTurn = !isYourTurn;
+        int bestMove = int( texelFetch(uLut, ivec2(enc % w, enc / w), 0).r );
+        move(bestMove);
 
         checkBoard();
     }
+    // uMouse.z > 0. means onMouseUp
+    else if (score != NA && uMouse.z > 0.) {
+        // game is complete, so reset board
+        youStartPrevGame = !youStartPrevGame;
+        isYourTurn = youStartPrevGame;
+        isX = true;
+        score = NA;
+        
+        board = mat3(
+            _, _, _,
+            _, _, _,
+            _, _, _
+        );
+    }
+    // uMouse.z > 0. means onMouseUp
+    else if (isYourTurn && uMouse.z > 0.) {
+        // human has moved
+        vec2 mouse = (uMouse.xy-0.5*uResolution.xy)/uResolution.y;
 
-    // onMouseUp
-    if (uMouse.z > 0.) {
-        if (score != NA) {
-            // game is complete, so reset board
-            youStartPrevGame = !youStartPrevGame;
-            isYourTurn = youStartPrevGame;
-            isX = true;
-            score = NA;
-            
-            board = mat3(
-                _, _, _,
-                _, _, _,
-                _, _, _
-            );
-        } else if (isYourTurn) {
-            vec2 mouse = (uMouse.xy-0.5*uResolution.xy)/uResolution.y;
-            float x = mouse.x;
-            float y = mouse.y;
+        // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3
+        vec2 id = (mouse + 0.3) * 5.;
+        // compute id for every cell
+        id = floor(id);
+        // flip it so the origin is at top left of board instead of bot left
+        id.y = 2. - id.y;
+        // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
+        int row = int( id.y + 1e-6 );
+        int col = int( id.x + 1e-6 );
 
-            // which column is selected
-            bvec3 upper = lessThan( vec3(x), vec3(-0.1,0.1,0.3) );
-            bvec3 lower = greaterThan( vec3(x), vec3(-0.3,-0.1,0.1) );
-            bvec3 col = equal(upper, lower);
-            // which row is selected
-            upper = lessThan( vec3(y), vec3(0.3,0.1,-0.1) );
-            lower = greaterThan( vec3(y), vec3(0.1,-0.1,-0.3) );
-            bvec3 row = equal(upper, lower);
-
-            bool isPlaced = false;
-            for (int i=0; i<3; i++) {
-                for (int j=0; j<3; j++) {
-                    // which cell is selected
-                    if (row[i] && col[j] && board[i][j] == _) {
-                        board[i][j] = isX ? X : O;
-                        isX = !isX;
-                        isYourTurn = !isYourTurn;
-                        // trick to break out of nested loops
-                        i = j = 4;
-                        break;
-                    }
-                }
-            }
-
-            checkBoard();
+        // id must be in domain [0,2]
+        if (-0.1 < id.x && id.x < 2.1 && -0.1 < id.y && id.y < 2.1 && board[row][col] == _) {
+            move(row, col);
         }
+
+        checkBoard();
     }
 
     storeState(outColor);

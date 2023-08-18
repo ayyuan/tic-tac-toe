@@ -11,10 +11,8 @@
 const float _           = 0.; // empty (nothing in that cell)
 const float X           = 1.;
 const float O           = 2.;
-const float X_HIGHLIGHT = 3.;
-const float X_DARKEN    = 4.;
-const float O_HIGHLIGHT = 5.;
-const float O_DARKEN    = 6.;
+const float X_DARKEN    = 3.;
+const float O_DARKEN    = 4.;
 
 // score states
 const float NA          = -99.;
@@ -34,6 +32,8 @@ const float TEXT_RATIO = 2.;
 const vec2 TEXT_SCALE  = 0.05 * vec2(1.,TEXT_RATIO);
 
 #define STATE              \
+    BOOL(onHover)          \
+    INT(glowPosition)      \
     BOOL(isYourTurn)       \
     BOOL(isX)              \
     BOOL(youStartPrevGame) \
@@ -76,6 +76,8 @@ void reset(float state) {
         wonAmount = lostAmount = 0.;
     }
 
+    onHover = false;
+    glowPosition = -1;
     isX = true;
     score = NA;
     

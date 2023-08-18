@@ -1,9 +1,9 @@
 import gl from './gl';
 import programInitState from './programs/programInitState';
 
-// 27 global variables in common.glsl
+// 29 global variables in common.glsl
 // mat3 counts as 9
-const WIDTH = 27;
+const WIDTH = 29;
 const HEIGHT = 1;
 
 // texture

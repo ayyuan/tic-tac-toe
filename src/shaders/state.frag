@@ -181,19 +181,22 @@ void randMove(uint seed) {
 void main() {
     loadState();
 
-    if (animate != NO_ANIMATE) {
-        // animation in progress
-        int row = animate.x;
-        int col = animate.y;
+    vec2 mouse = (uMouse.xy - 0.5*uResolution.xy) / uResolution.y;
+    // id for each letter in "Hard/Easy Mode" text
+    vec2 t = floor( (mouse + 4.5*TEXT_SCALE) / TEXT_SCALE + 1e-6 );
 
-        boardTime[row][col] += uTimeDelta;
+    // -- computing which cell our mouse is currently on
+    // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3
+    vec2 id = (mouse + 0.3) * 5.;
+    // compute id for every cell
+    id = floor(id);
+    // flip it so the origin is at top left of board instead of bot left
+    id.y = 2. - id.y;
+    // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
+    int row = int( id.y + 1e-6 );
+    int col = int( id.x + 1e-6 );
 
-        if (boardTime[row][col] > ANIMATE_DURATION) {
-            // animation complete
-            animate = NO_ANIMATE;
-        }
-    }
-    else if (!isYourTurn && score == NA && animate == NO_ANIMATE) {
+    if (!isYourTurn && score == NA && animate == NO_ANIMATE) {
         // AI chooses move
         if (isEasyMode) {
             // do random move
@@ -213,9 +216,6 @@ void main() {
     }
     // uMouse.z > 0. means onMouseUp
     else if (uMouse.z > 0.) {
-        vec2 mouse = (uMouse.xy-0.5*uResolution.xy)/uResolution.y;
-
-        vec2 t = floor( (mouse + 4.5*TEXT_SCALE) / TEXT_SCALE + 1e-6 );
         if (score != NA && animate == NO_ANIMATE) {
             // game is complete, so reset board
             reset(NEW_ROUND);
@@ -229,16 +229,6 @@ void main() {
         else if (isYourTurn && animate == NO_ANIMATE) {
             // human has moved
 
-            // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3
-            vec2 id = (mouse + 0.3) * 5.;
-            // compute id for every cell
-            id = floor(id);
-            // flip it so the origin is at top left of board instead of bot left
-            id.y = 2. - id.y;
-            // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
-            int row = int( id.y + 1e-6 );
-            int col = int( id.x + 1e-6 );
-
             // id must be in domain [0,2]
             if (-0.1 < id.x && id.x < 2.1 && -0.1 < id.y && id.y < 2.1 && board[row][col] == _) {
                 move(row, col);
@@ -247,6 +237,45 @@ void main() {
             checkBoard();
         }
     }
+    else if (animate != NO_ANIMATE) {
+        // animation in progress
+        int row = animate.x;
+        int col = animate.y;
+
+        boardTime[row][col] += uTimeDelta;
+
+        if (boardTime[row][col] > ANIMATE_DURATION) {
+            // animation complete
+            animate = NO_ANIMATE;
+        }
+    }
+
+    // -- setting onHover and glowPosition
+    // hitbox for hard/easy mode text: t.x range [0,8] t.y == 0
+    if (-0.1 < t.x && t.x < 8.1 && -0.1 < t.y && t.y < 0.1 &&
+        score == NA) {
+        // show pointer cursor when hover over mode text
+        onHover = true;
+        glowPosition = 9;
+    } else {
+        onHover = false;
+        glowPosition = -1;
+    }
+
+    // id must be in domain [0,2]
+    if (-0.1 < id.x && id.x < 2.1 && -0.1 < id.y && id.y < 2.1 &&
+        board[row][col] == _ &&
+        score == NA &&
+        isYourTurn && animate == NO_ANIMATE) {
+        // show pointer cursor when hover over cell
+        onHover = true;
+        glowPosition = row * 3 + col;
+    } else {
+        if (glowPosition != 9) glowPosition = -1;
+    }
+    
+    // show pointer cursor when gameover screen is displayed
+    onHover = onHover || (score != NA && animate == NO_ANIMATE);
 
     storeState(outColor);
 }

@@ -147,21 +147,45 @@ void drawBoard(vec2 p, inout vec3 color) {
 
     // finite domain repetition
     vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
-    if (board[row][col] == X || board[row][col] == X_DARKEN) {
-        // draw X
-        float sd = xSDF( q, time(row, col) ) - LINE_THICKNESS;
-        float c = smoothstep(lineBlur, 0., sd);
-        color += board[row][col] == X_DARKEN ? 0.5 * c : c;
+    int grow = glowPosition / 3;
+    int gcol = glowPosition - 3 * grow;
+    if (row == grow && col == gcol) {
+        // draw faint glowing X or O
+        if (isX) {
+            // rotate coordinate system by 45 deg
+            q = mat2(cos(0.785), sin(0.785), -sin(0.785), cos(0.785)) * q;
+
+            float vertical = lineSDF(q, vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE) ) - LINE_THICKNESS;
+            float horizontal = lineSDF(q, vec2(-PIECE_SIZE, 0.), vec2(PIECE_SIZE, 0.) ) - LINE_THICKNESS;
+
+            const float glow = 0.01;
+            float v = ( 1. - step(0., vertical) )   + max( glow/(glow+abs(vertical)) - 0.1, 0. )  ;
+            float h = ( 1. - step(0., horizontal) ) + max( glow/(glow+abs(horizontal)) - 0.1, 0. );
+            color += 0.5 * clamp(0.5*(v+h), 0., 1.);
+        } else {
+            float sd = oSDF(q) - LINE_THICKNESS;
+            const float glow = 0.01;
+            float c = ( 1. - step(0., sd) ) + max( glow/(glow+abs(sd)) - 0.1, 0. );
+            color += 0.5 * clamp(c, 0., 1.);
+        }
     }
-    else if (board[row][col] == O || board[row][col] == O_DARKEN) {
-        // draw O
-        float sd = oSDF(q) - LINE_THICKNESS;
-        float t = time(row, col);
-        float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
-        // animation mask
-        float mask = step( an, t );
-        float c = smoothstep(lineBlur, 0., sd) * mask;
-        color += board[row][col] == O_DARKEN ? 0.5 * c : c;
+    else {
+        if (board[row][col] == X || board[row][col] == X_DARKEN) {
+            // draw X
+            float sd = xSDF( q, time(row, col) ) - LINE_THICKNESS;
+            float c = smoothstep(lineBlur, 0., sd);
+            color += board[row][col] == X_DARKEN ? 0.5 * c : c;
+        }
+        else if (board[row][col] == O || board[row][col] == O_DARKEN) {
+            // draw O
+            float sd = oSDF(q) - LINE_THICKNESS;
+            float t = time(row, col);
+            float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
+            // animation mask
+            float mask = step( an, t );
+            float c = smoothstep(lineBlur, 0., sd) * mask;
+            color += board[row][col] == O_DARKEN ? 0.5 * c : c;
+        }
     }
 }
 
@@ -184,6 +208,8 @@ void drawText(vec2 p, inout vec3 col) {
         q /= TEXT_SCALE;
         q.x = (q.x - .5) / TEXT_RATIO + .5;
         drawNumber(q, wonAmount, vec3(1.), col);
+
+        glowPosition = -1;
     } else if (p.x > 0. && p.y > 0.) {
         // draw "AI"
         float center = 0.5 * (X_BOUND + 0.3);
@@ -197,6 +223,8 @@ void drawText(vec2 p, inout vec3 col) {
         q /= TEXT_SCALE;
         q.x = (q.x - .5) / TEXT_RATIO + .5;
         drawNumber(q, lostAmount, vec3(1.), col);
+
+        glowPosition = -1;
     } else {
         // draw "Easy Mode" / "Hard Mode"
         p -= -4.5 * TEXT_SCALE;
@@ -222,6 +250,10 @@ void drawText(vec2 p, inout vec3 col) {
     if (char != 0.) {
         float blur = TEXT_BLUR / uResolution.y;
         col = mix(vec3(1.), col, smoothstep(-blur, +blur, sdf));
+
+        if (glowPosition == 9) {
+            col += max( 0.5 * (0.02/(0.02+abs(sdf))) - 0.05, 0. );
+        }
     }
 }
 

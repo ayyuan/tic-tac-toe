@@ -32,27 +32,14 @@ out vec4 outColor;
 
 const float PI = acos(-1.);
 
-// letter positions in texture
-const vec2 L_UP = vec2(12, 11);
-const vec2 O_UP = vec2(15, 11);
-const vec2 S_UP = vec2(3, 10);
-const vec2 E_UP = vec2(5, 11);
-
-const vec2 W_UP = vec2(7, 10);
-const vec2 I_UP = vec2(9, 11);
-const vec2 N_UP = vec2(14, 11);
-
-const vec2 T_UP = vec2(4, 10);
-
 const vec3 LOSE_TEXT_COL = vec3(1, 0, 0);
 const vec3 WIN_TEXT_COL = vec3(0, 1, 0);
 const vec3 TIE_TEXT_COL = vec3(1, 0, 1);
 
-const float TEXT_SIZE = 0.1;
-const float TEXT_SPACE = 0.6;
 const float TEXT_BLUR = 15.;
 const float TEXT_RATIO = 2.;
 const vec2 TEXT_SCALE = 0.05 * vec2(1.,TEXT_RATIO);
+const vec2 GO_TEXT_SCALE = 0.2 * vec2(1.,TEXT_RATIO);
 
 const float LINE_THICKNESS = 0.003;
 const float LINE_BLUR = 2.5;
@@ -90,22 +77,7 @@ float oSDF(vec2 p) {
 }
 
 float textSDF(vec2 p, float char) {
-	return texture(uFont, p / 16. + fract(vec2(char, 15. - floor(char / 16.)) / 16.)).w - 0.49;
-}
-
-void char(vec2 p, vec2 ch, vec3 textCol, inout vec3 col) {
-    if (abs(p.x) < 0.5 && abs(p.y) < 0.5) {
-        p += ch;
-        // get signed distance to letter from texture
-        float sd = texture(uFont, (p + 0.5) * (1.0 / 16.0)).w - 0.49;
-        #if 1
-        float blur = TEXT_BLUR / uResolution.y;
-        col = mix(textCol, col, smoothstep(-blur, blur, sd));
-        #else
-        // for debugging
-        col += sd;
-        #endif
-    }
+    return texture(uFont, p / 16. + fract(vec2(char, 15. - floor(char / 16.)) / 16.)).w - 0.49;
 }
 
 void drawChar(vec2 p, float char, vec3 textCol, inout vec3 col) {
@@ -198,7 +170,6 @@ void drawBoard(vec2 p, inout vec3 color) {
 void drawText(vec2 p, inout vec3 col) {
     // id for each cell
     vec2 t = vec2(0.);
-
     // contains encoding for text
     // encoded with https://github.com/knarkowicz/ShadertoyText
     uint v = 0u;
@@ -237,18 +208,77 @@ void drawText(vec2 p, inout vec3 col) {
     }
 
     // extract character
-	float char = float((v >> uint(8. * t.x)) & 255u);
+    float char = float((v >> uint(8. * t.x)) & 255u);
 
     // compute [0;1] position in the current cell
-	vec2 posInCell = (p - t * TEXT_SCALE) / TEXT_SCALE;
+    vec2 posInCell = (p - t * TEXT_SCALE) / TEXT_SCALE;
     // aspect correct
-	posInCell.x = (posInCell.x - .5) / TEXT_RATIO + .5;
+    posInCell.x = (posInCell.x - .5) / TEXT_RATIO + .5;
 
-	float sdf = textSDF(posInCell, char);
-	if (char != 0.) {
+    float sdf = textSDF(posInCell, char);
+    if (char != 0.) {
         float blur = TEXT_BLUR / uResolution.y;
-		col = mix(vec3(1.), col, smoothstep(-blur, +blur, sdf));
-	}
+        col = mix(vec3(1.), col, smoothstep(-blur, +blur, sdf));
+    }
+}
+
+void drawGameOver(vec2 p, inout vec3 color) {
+    // draw game over overlay
+    if (animate != NO_ANIMATE) return;
+
+    vec3 textCol = vec3(1.);
+    // id for each cell
+    vec2 t = vec2(0.);
+    // contains encoding for text
+    // encoded with https://github.com/knarkowicz/ShadertoyText
+    uint v = 0u;
+    if (score == LOSE) {
+        // draw "LOSE" text
+        textCol = LOSE_TEXT_COL;
+        // dim background
+        color *= 0.4;
+
+        p.x -= -2. * GO_TEXT_SCALE.x;
+        p.y -= -0.5 * GO_TEXT_SCALE.y;
+        t = floor(p / GO_TEXT_SCALE + 1e-6);
+        v = t.y == 0. ? 1163087692u : v;
+        v = t.x >= 0. && t.x < 4. ? v : 0u;
+    } else if (score == WIN) {
+        // draw "WIN" text
+        textCol = WIN_TEXT_COL;
+        // dim background
+        color *= 0.4;
+
+        p.x -= -1.5 * GO_TEXT_SCALE.x;
+        p.y -= -0.5 * GO_TEXT_SCALE.y;
+        t = floor(p / GO_TEXT_SCALE + 1e-6);
+        v = t.y == 0. ? 5130583u : v;
+        v = t.x >= 0. && t.x < 4. ? v : 0u;
+    } else if (score == TIE) {
+        // draw "TIE" text
+        textCol = TIE_TEXT_COL;
+        // dim background
+        color *= 0.4;
+
+        p.x -= -1.5 * GO_TEXT_SCALE.x;
+        p.y -= -0.5 * GO_TEXT_SCALE.y;
+        t = floor(p / GO_TEXT_SCALE + 1e-6);
+        v = t.y == 0. ? 4540756u : v;
+        v = t.x >= 0. && t.x < 4. ? v : 0u;
+    }
+    // extract character
+    float char = float((v >> uint(8. * t.x)) & 255u);
+
+    // compute [0;1] position in the current cell
+    vec2 posInCell = (p - t * GO_TEXT_SCALE) / GO_TEXT_SCALE;
+    // aspect correct
+    posInCell.x = (posInCell.x - .5) / TEXT_RATIO + .5;
+
+    float sdf = textSDF(posInCell, char);
+    if (char != 0.) {
+        float blur = 0.75 * TEXT_BLUR / uResolution.y;
+        color = mix(textCol, color, smoothstep(-blur, +blur, sdf));
+    }
 }
 
 void main() {
@@ -263,36 +293,7 @@ void main() {
 
     drawBoard(p, color);
     drawText(p, color);
-    
-    // draw game over overlay
-    if (animate == NO_ANIMATE) {
-        if (score == LOSE) {
-            color *= 0.4;
-            p /= 0.25;
-            // draw "LOSE" text
-            vec2 pos = vec2(-0.9, 0);
-            char(p - pos, L_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
-            char(p - pos, O_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
-            char(p - pos, S_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
-            char(p - pos, E_UP, LOSE_TEXT_COL, color);
-        } else if (score == WIN) {
-            color *= 0.4;
-            p /= 0.25;
-            // draw "WIN" text
-            vec2 pos = vec2(-0.6, 0);
-            char(p - pos, W_UP, WIN_TEXT_COL, color); pos.x += TEXT_SPACE;
-            char(p - pos, I_UP, WIN_TEXT_COL, color); pos.x += TEXT_SPACE;
-            char(p - pos, N_UP, WIN_TEXT_COL, color);
-        } else if (score == TIE) {
-            color *= 0.4;
-            p /= 0.25;
-            // draw "TIE" text
-            vec2 pos = vec2(-0.6, 0);
-            char(p - pos, T_UP, TIE_TEXT_COL, color); pos.x += TEXT_SPACE;
-            char(p - pos, I_UP, TIE_TEXT_COL, color); pos.x += TEXT_SPACE;
-            char(p - pos, E_UP, TIE_TEXT_COL, color);
-        }
-    }
+    drawGameOver(p, color);
 
     outColor = vec4(color, 1.0);
 }

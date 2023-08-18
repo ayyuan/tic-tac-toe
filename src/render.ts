@@ -16,6 +16,7 @@ const stateLocations = {
   uState: gl.getUniformLocation(programState, 'uState'),
   uLut: gl.getUniformLocation(programState, 'uLut'),
   uMouse: gl.getUniformLocation(programState, 'uMouse'),
+  uTimeDelta: gl.getUniformLocation(programState, 'uTimeDelta'),
 };
 
 // uniform vec3 uMouse
@@ -35,7 +36,7 @@ const stateTexUnit = 0;
 const fontTexUnit = 1;
 const lutTexUnit = 2;
 
-export default function render() {
+export default function render(deltaTime: number) {
   // -- render to state fbo --
   gl.useProgram(programState)
 
@@ -48,6 +49,7 @@ export default function render() {
   gl.bindTexture(gl.TEXTURE_2D, textureLut);
   gl.uniform1i(stateLocations.uLut, lutTexUnit);
 
+  gl.uniform1f(stateLocations.uTimeDelta, deltaTime / 1000);
   gl.uniform2f(stateLocations.uResolution, gl.canvas.width, gl.canvas.height);
   gl.uniform3f(
     stateLocations.uMouse,

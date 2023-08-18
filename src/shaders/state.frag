@@ -6,6 +6,7 @@
 
 precision highp float;
 
+uniform float uTimeDelta;
 uniform vec2 uResolution;
 uniform vec3 uMouse;
 uniform sampler2D uState;
@@ -114,6 +115,7 @@ void move(int row, int col) {
     board[row][col] = isX ? X : O;
     isX = !isX;
     isYourTurn = !isYourTurn;
+    animate = ivec2(row, col);
 }
 
 void move(int pos) {
@@ -141,7 +143,19 @@ int encoding() {
 void main() {
     loadState();
 
-    if (!isYourTurn && score == NA) {
+    if (animate != NO_ANIMATE) {
+        // animation in progress
+        int row = animate.x;
+        int col = animate.y;
+
+        boardTime[row][col] += uTimeDelta;
+
+        if (boardTime[row][col] > ANIMATE_DURATION) {
+            // animation complete
+            animate = NO_ANIMATE;
+        }
+    }
+    else if (!isYourTurn && score == NA && animate == NO_ANIMATE) {
         // AI chooses move
         // encoding the board so we can query our minimax LUT texture
         int enc = encoding();
@@ -152,13 +166,16 @@ void main() {
         checkBoard();
     }
     // uMouse.z > 0. means onMouseUp
-    else if (score != NA && uMouse.z > 0.) {
+    else if (score != NA && uMouse.z > 0. && animate == NO_ANIMATE) {
         // game is complete, so reset board
         youStartPrevGame = !youStartPrevGame;
         isYourTurn = youStartPrevGame;
         isX = true;
         score = NA;
-        
+
+        animate = NO_ANIMATE;
+        boardTime = mat3(0.);
+
         board = mat3(
             _, _, _,
             _, _, _,
@@ -166,7 +183,7 @@ void main() {
         );
     }
     // uMouse.z > 0. means onMouseUp
-    else if (isYourTurn && uMouse.z > 0.) {
+    else if (isYourTurn && uMouse.z > 0. && animate == NO_ANIMATE) {
         // human has moved
         vec2 mouse = (uMouse.xy-0.5*uResolution.xy)/uResolution.y;
 

@@ -19,6 +19,9 @@ void main() {
     score = NA;
     
     wonAmount = lostAmount = tieAmount = 0.;
+
+    animate = NO_ANIMATE;
+    boardTime = mat3(0.);
     
     board = mat3(
         _, _, _,

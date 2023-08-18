@@ -13,6 +13,9 @@
 
     iResolution, iMouse, iDate, etc - FabriceNeyret2
     https://www.shadertoy.com/view/llySRh
+
+    easings_cheat_sheet - skaplun
+    https://www.shadertoy.com/view/7tf3Ws
 */
 
 precision highp float;
@@ -26,6 +29,8 @@ in vec2 vPosition;
 out vec4 outColor;
 
 #define SHOW_DEBUG_LINES 0
+
+const float PI = acos(-1.);
 
 // letter positions in texture
 const vec2 L_UP = vec2(12, 11);
@@ -86,12 +91,16 @@ float lineSDF(in vec2 p, in vec2 a, in vec2 b) {
     return length(pa - ba * h);
 }
 
-float xSDF(vec2 p) {
+float xSDF(vec2 p, float t) {
     // rotate coordinate system by 45 deg
     p = mat2(cos(0.785), sin(0.785), -sin(0.785), cos(0.785)) * p;
 
-    float vertical = lineSDF(p, vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE));
-    float horizontal = lineSDF(p, vec2(PIECE_SIZE, 0.), vec2(-PIECE_SIZE, 0.));
+    // animated values
+    vec2 vEnd = mix( vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE), clamp( t, 0., 1. ) );
+    vec2 hEnd = mix( vec2(-PIECE_SIZE, 0.), vec2(PIECE_SIZE, 0.), clamp( t, 0., 1. ) );
+
+    float vertical = lineSDF(p, vec2(0., PIECE_SIZE), vEnd);
+    float horizontal = lineSDF(p, vec2(-PIECE_SIZE, 0.), hEnd);
 
     return min(vertical, horizontal);
 }
@@ -173,6 +182,16 @@ void youText(vec2 uv, inout vec3 col) {
     printNumber(p-tpos, wonAmount, col);
 }
 
+// https://www.shadertoy.com/view/7tf3Ws
+float easeInOutCubic(float x) {
+    return x < .5 ? 4. * x * x * x : 1. - pow(-2. * x + 2., 3.) / 2.;
+}
+
+float time(int row, int col) {
+    float t = boardTime[row][col] / ANIMATE_DURATION;
+    return easeInOutCubic(t);
+}
+
 void main() {
     loadState();
 
@@ -225,14 +244,18 @@ void main() {
     vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
     if (board[row][col] == X || board[row][col] == X_DARKEN) {
         // draw X
-        float sd = xSDF(q) - LINE_THICKNESS;
+        float sd = xSDF( q, time(row, col) ) - LINE_THICKNESS;
         float c = smoothstep(lineBlur, 0., sd);
         color += board[row][col] == X_DARKEN ? 0.5 * c : c;
     }
     else if (board[row][col] == O || board[row][col] == O_DARKEN) {
         // draw O
         float sd = oSDF(q) - LINE_THICKNESS;
-        float c = smoothstep(lineBlur, 0., sd);
+        float t = time(row, col);
+        float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
+        // animation mask
+        float mask = step( an, t );
+        float c = smoothstep(lineBlur, 0., sd) * mask;
         color += board[row][col] == O_DARKEN ? 0.5 * c : c;
     }
 
@@ -242,31 +265,33 @@ void main() {
     youText(p, color);
     
     // draw game over overlay
-    if (score == LOSE) {
-        color *= 0.4;
-        p /= 0.25;
-        // draw "LOSE" text
-        vec2 pos = vec2(-0.9, 0);
-        char(p - pos, L_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
-        char(p - pos, O_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
-        char(p - pos, S_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
-        char(p - pos, E_UP, LOSE_TEXT_COL, color);
-    } else if (score == WIN) {
-        color *= 0.4;
-        p /= 0.25;
-        // draw "WIN" text
-        vec2 pos = vec2(-0.6, 0);
-        char(p - pos, W_UP, WIN_TEXT_COL, color); pos.x += TEXT_SPACE;
-        char(p - pos, I_UP, WIN_TEXT_COL, color); pos.x += TEXT_SPACE;
-        char(p - pos, N_UP, WIN_TEXT_COL, color);
-    } else if (score == TIE) {
-        color *= 0.4;
-        p /= 0.25;
-        // draw "TIE" text
-        vec2 pos = vec2(-0.6, 0);
-        char(p - pos, T_UP, TIE_TEXT_COL, color); pos.x += TEXT_SPACE;
-        char(p - pos, I_UP, TIE_TEXT_COL, color); pos.x += TEXT_SPACE;
-        char(p - pos, E_UP, TIE_TEXT_COL, color);
+    if (animate == NO_ANIMATE) {
+        if (score == LOSE) {
+            color *= 0.4;
+            p /= 0.25;
+            // draw "LOSE" text
+            vec2 pos = vec2(-0.9, 0);
+            char(p - pos, L_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
+            char(p - pos, O_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
+            char(p - pos, S_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
+            char(p - pos, E_UP, LOSE_TEXT_COL, color);
+        } else if (score == WIN) {
+            color *= 0.4;
+            p /= 0.25;
+            // draw "WIN" text
+            vec2 pos = vec2(-0.6, 0);
+            char(p - pos, W_UP, WIN_TEXT_COL, color); pos.x += TEXT_SPACE;
+            char(p - pos, I_UP, WIN_TEXT_COL, color); pos.x += TEXT_SPACE;
+            char(p - pos, N_UP, WIN_TEXT_COL, color);
+        } else if (score == TIE) {
+            color *= 0.4;
+            p /= 0.25;
+            // draw "TIE" text
+            vec2 pos = vec2(-0.6, 0);
+            char(p - pos, T_UP, TIE_TEXT_COL, color); pos.x += TEXT_SPACE;
+            char(p - pos, I_UP, TIE_TEXT_COL, color); pos.x += TEXT_SPACE;
+            char(p - pos, E_UP, TIE_TEXT_COL, color);
+        }
     }
 
     outColor = vec4(color, 1.0);

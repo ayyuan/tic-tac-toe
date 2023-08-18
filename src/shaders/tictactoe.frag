@@ -28,44 +28,16 @@ out vec4 outColor;
 #define SHOW_DEBUG_LINES 0
 
 // letter positions in texture
-const vec2 L_UP = vec2(12, 11);
-const vec2 O_UP = vec2(15, 11);
-const vec2 S_UP = vec2(3, 10);
-const vec2 E_UP = vec2(5, 11);
-
-const vec2 W_UP = vec2(7, 10);
-const vec2 I_UP = vec2(9, 11);
-const vec2 N_UP = vec2(14, 11);
-
-const vec2 T_UP = vec2(4, 10);
-
 const vec2 Y_UP = vec2(9, 10);
+const vec2 O_UP = vec2(15, 11);
 const vec2 U_UP = vec2(5, 10);
-const vec2 R_UP = vec2(2, 10);
 
 const vec2 A_UP = vec2(1, 11);
-
-const vec2 P_UP = vec2(0, 10);
-const vec2 G_UP = vec2(7, 11);
-const vec2 Q_CH = vec2(15, 12); // '?' question mark
-
-const vec2 W_LO = vec2(7, 8);
-const vec2 O_LO = vec2(15, 9);
-const vec2 N_LO = vec2(14, 9);
-const vec2 C_CH = vec2(10, 12); // ':' colon
-
-const vec2 L_LO = vec2(12, 9);
-const vec2 S_LO = vec2(3, 8);
-const vec2 T_LO = vec2(4, 8);
-
-const vec2 I_LO = vec2(9, 9);
-const vec2 E_LO = vec2(5, 9);
+const vec2 I_UP = vec2(9, 11);
 
 const vec2 ZERO = vec2(0, 12);
 
-const vec3 LOSE_TEXT_COL = vec3(1, 0, 0);
-const vec3 WIN_TEXT_COL = vec3(0, 1, 0);
-const vec3 TIE_TEXT_COL = vec3(1, 0, 1);
+const vec3 MODE_TEXT_COL = vec3(1);
 const vec3 TURN_TEXT_COL = vec3(1);
 
 const float TEXT_SIZE = 0.1;
@@ -116,56 +88,18 @@ void char(vec2 p, vec2 ch, vec3 textCol, inout vec3 col) {
 }
 
 void statusText(vec2 uv, inout vec3 col) {
+    // draw "HARD MODE" text
     vec2 p = uv / TEXT_SIZE;
-
-    if (score == LOSE) {
-        // draw "LOSE" text
-        vec2 pos = vec2(-0.9, 4);
-        char(p - pos, L_UP, LOSE_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, O_UP, LOSE_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, S_UP, LOSE_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, E_UP, LOSE_TEXT_COL, col);
-    } else if (score == WIN) {
-        // draw "WIN" text
-        vec2 pos = vec2(-0.6, 4);
-        char(p - pos, W_UP, WIN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, I_UP, WIN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, N_UP, WIN_TEXT_COL, col);
-    } else if (score == TIE) {
-        // draw "TIE" text
-        vec2 pos = vec2(-0.6, 4);
-        char(p - pos, T_UP, TIE_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, I_UP, TIE_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, E_UP, TIE_TEXT_COL, col);
-    } else if (isYourTurn) {
-        // draw "YOUR TURN" text
-        vec2 pos = vec2(-2.4, -4);
-        char(p - pos, Y_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, O_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, U_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, R_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        pos.x += TEXT_SPACE;
-        char(p - pos, T_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, U_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, R_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, N_UP, TURN_TEXT_COL, col);
-    }
-
-    if (score != NA) {
-        // draw "PLAY AGAIN?" text
-        vec2 pos = vec2(-2.825, -4.);
-        char(p - pos, P_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, L_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, A_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, Y_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        pos.x += 0.5 * TEXT_SPACE;
-        char(p - pos, A_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, G_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, A_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, I_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, N_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-        char(p - pos, Q_CH, TURN_TEXT_COL, col);
-    }
+    vec2 pos = vec2(-2.4, -4);
+    char(p - pos, vec2(8,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
+    char(p - pos, vec2(1,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
+    char(p - pos, vec2(2,10), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
+    char(p - pos, vec2(4,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
+    pos.x += TEXT_SPACE;
+    char(p - pos, vec2(13,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
+    char(p - pos, vec2(15,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
+    char(p - pos, vec2(4,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
+    char(p - pos, vec2(5,11), MODE_TEXT_COL, col);
 }
 
 // https://www.shadertoy.com/view/llySRh
@@ -179,87 +113,35 @@ void printNumber(vec2 p, float n, inout vec3 col) {
     }
 }
 
-void wonText(vec2 p, float center, float wonAmt, inout vec3 col) {
-    // draw "won:" text
-    vec2 pos = vec2(center,0.15/TEXT_SIZE - 0.5*TEXT_SPACE);
-    vec2 wpos = pos - vec2(-TEXT_SPACE,0.8);
-    pos.x -= TEXT_SPACE;
-
-    char(p-pos, W_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, O_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, N_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, C_CH, TURN_TEXT_COL, col);
-    
-    // draw won amount
-    printNumber(p-wpos, wonAmt, col);
-}
-
-void loseText(vec2 p, float center, float lostAmt, inout vec3 col) {
-    // draw "lost:" text
-    vec2 pos = vec2(center,-0.025/TEXT_SIZE - 0.5*TEXT_SPACE);
-    vec2 lpos = pos - vec2(-TEXT_SPACE,0.8);
-    pos.x -= TEXT_SPACE;
-
-    char(p-pos, L_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, O_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, S_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, T_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, C_CH, TURN_TEXT_COL, col);
-    
-    // draw lost amount
-    printNumber(p-lpos, lostAmt, col);
-}
-
-void tieText(vec2 p, float center, float tieAmt, inout vec3 col) {
-    // draw "tie:" text
-    vec2 pos = vec2(center,-0.2/TEXT_SIZE - 0.5*TEXT_SPACE);
-    vec2 tpos = pos - vec2(-TEXT_SPACE,0.8);
-    pos.x -= TEXT_SPACE;
-
-    char(p-pos, T_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, I_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, E_LO, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, C_CH, TURN_TEXT_COL, col);
-    
-    // draw tie amount
-    printNumber(p-tpos, tieAmt, col);
-}
-
 void aiText(vec2 uv, inout vec3 col) {
     vec2 p = uv / TEXT_SIZE;
+    float center = 0.5 * (X_BOUND + 0.3) / TEXT_SIZE;
     
     // draw "AI" text
-    vec2 pos = vec2(0.,0.3/TEXT_SIZE - 0.5*TEXT_SPACE);
-    // finding center point
-    pos.x = 0.5 * (X_BOUND + 0.3) / TEXT_SIZE;
-    pos.x -= 0.5 * TEXT_SPACE;
+    vec2 pos = vec2(center - 0.5*TEXT_SPACE, 0.3/TEXT_SIZE - 0.5*TEXT_SPACE);
     
     char(p-pos, A_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
     char(p-pos, I_UP, TURN_TEXT_COL, col);
-    
-    float center = 0.5 * (X_BOUND + 0.3) / TEXT_SIZE;
-    wonText(p, center, lostAmount, col);
-    loseText(p, center, wonAmount, col);
-    tieText(p, center, tieAmount, col);
+
+    // draw AI win amount
+    vec2 tpos = vec2(center + 0.5*TEXT_SPACE, 0.15/TEXT_SIZE - 0.5*TEXT_SPACE);
+    printNumber(p-tpos, lostAmount, col);
 }
 
 void youText(vec2 uv, inout vec3 col) {
     vec2 p = uv / TEXT_SIZE;
+    float center = 0.5 * (-X_BOUND + (-0.3)) / TEXT_SIZE;
     
     // draw "YOU" text
-    vec2 pos = vec2(0.,0.3/TEXT_SIZE - 0.5*TEXT_SPACE);
-    // finding center point
-    pos.x = 0.5 * (-X_BOUND + (-0.3)) / TEXT_SIZE;
-    pos.x -= TEXT_SPACE;
+    vec2 pos = vec2(center - TEXT_SPACE, 0.3/TEXT_SIZE - 0.5*TEXT_SPACE);
 
     char(p-pos, Y_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
     char(p-pos, O_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
     char(p-pos, U_UP, TURN_TEXT_COL, col);
     
-    float center = 0.5 * (-X_BOUND + (-0.3)) / TEXT_SIZE;
-    wonText(p, center, wonAmount, col);
-    loseText(p, center, lostAmount, col);
-    tieText(p, center, tieAmount, col);
+    // draw win amount
+    vec2 tpos = vec2(center + TEXT_SPACE, 0.15/TEXT_SIZE - 0.5*TEXT_SPACE);
+    printNumber(p-tpos, wonAmount, col);
 }
 
 void main() {

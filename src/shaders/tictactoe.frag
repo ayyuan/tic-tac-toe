@@ -16,6 +16,9 @@
 
     easings_cheat_sheet - skaplun
     https://www.shadertoy.com/view/7tf3Ws
+
+    SDF texture filtering, take 2 - mattz
+    https://www.shadertoy.com/view/4sVyWh
 */
 
 precision highp float;
@@ -80,8 +83,35 @@ float oSDF(vec2 p) {
     return abs(length(p) - radius);
 }
 
+float textSDF(vec2 p, float char, vec2 delta) {
+    // texture is uint8 so need a bias to represent 0 isoline
+    const float bias = 127. / 255.;
+    return texture(uFont, delta + p / 16. + fract(vec2(char, 15. - floor(char / 16.)) / 16.)).w - bias;
+}
+
 float textSDF(vec2 p, float char) {
-    return texture(uFont, p / 16. + fract(vec2(char, 15. - floor(char / 16.)) / 16.)).w - 0.49;
+    return textSDF(p, char, vec2(0.));
+}
+
+// gaussian blur on distance channel
+// https://www.shadertoy.com/view/4sVyWh
+float gaussianTextSDF(vec2 p, float char) {
+    const int size = 3;
+    // NOTE: not sure why but using a vec3 instead of float[3] here yields different results
+    const float[size] kernel = float[](1., 2., 1.);
+    float dist  = 0.;
+    float total = 0.;
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            float w = kernel[i] * kernel[j];
+            vec2 delta = vec2(float(i-1), float(j-1)) / float( textureSize(uFont, 0) );
+
+            float sd = textSDF(p, char, delta);
+            dist  += w * sd;
+            total += w;
+        }
+    }
+    return dist / total;
 }
 
 void drawChar(vec2 p, float char, vec3 textCol, inout vec3 col) {
@@ -265,7 +295,7 @@ void drawText(vec2 p, inout vec3 col) {
 
 void drawGameOver(vec2 p, inout vec3 color) {
     // draw game over overlay
-    if (animate != NO_ANIMATE) return;
+    if (animate != NO_ANIMATE || score == NA) return;
 
     vec3 textCol = vec3(1.);
     // id for each cell
@@ -315,9 +345,9 @@ void drawGameOver(vec2 p, inout vec3 color) {
     // aspect correct
     posInCell.x = (posInCell.x - .5) / TEXT_RATIO + .5;
 
-    float sdf = textSDF(posInCell, char);
+    float sdf = gaussianTextSDF(posInCell, char);
     if (char != 0.) {
-        float blur = 0.75 * TEXT_BLUR / uResolution.y;
+        float blur = 0.25 * TEXT_BLUR / uResolution.y;
         color = mix(textCol, color, smoothstep(-blur, +blur, sdf));
     }
 }

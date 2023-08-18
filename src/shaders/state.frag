@@ -9,6 +9,7 @@ precision highp float;
 uniform vec2 uResolution;
 uniform vec3 uMouse;
 uniform sampler2D uState;
+uniform sampler2D uLut;
 
 in vec2 vPosition;
 
@@ -112,6 +113,32 @@ void checkBoard() {
 void main() {
     loadState();
 
+    if (!isYourTurn && score == NA) {
+        // AI chooses move
+        int encoding = 0;
+        int power = 1;
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                if (board[i][j] == X) {
+                    encoding += 1 * power;
+                } else if (board[i][j] == O) {
+                    encoding += 2 * power;
+                }
+                power *= 3;
+            }
+        }
+
+        int w = textureSize(uLut, 0).x;
+        int bestMove = int( texelFetch(uLut, ivec2(encoding % w, encoding / w), 0).r );
+        int row = bestMove / 3;
+        int col = bestMove - 3 * row;
+        board[row][col] = isX ? X : O;
+        isX = !isX;
+        isYourTurn = !isYourTurn;
+
+        checkBoard();
+    }
+
     // onMouseUp
     if (uMouse.z > 0.) {
         if (score != NA) {
@@ -126,7 +153,7 @@ void main() {
                 _, _, _,
                 _, _, _
             );
-        } /* TODO: else if (isYourTurn)*/ {
+        } else if (isYourTurn) {
             vec2 mouse = (uMouse.xy-0.5*uResolution.xy)/uResolution.y;
             float x = mouse.x;
             float y = mouse.y;

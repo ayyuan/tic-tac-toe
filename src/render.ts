@@ -3,6 +3,7 @@ import gl from './gl';
 import programState from './programs/programState';
 import programTicTacToe from './programs/programTicTacToe';
 import state from './state';
+import textureLut from './textureLut';
 
 // uniform locations
 const tictactoeLocations = {
@@ -13,6 +14,7 @@ const tictactoeLocations = {
 const stateLocations = {
   uResolution: gl.getUniformLocation(programState, 'uResolution'),
   uState: gl.getUniformLocation(programState, 'uState'),
+  uLut: gl.getUniformLocation(programState, 'uLut'),
   uMouse: gl.getUniformLocation(programState, 'uMouse'),
 };
 
@@ -31,6 +33,7 @@ canvas.addEventListener('pointerup', (ev) => {
 // texture unit locations
 const stateTexUnit = 0;
 const fontTexUnit = 1;
+const lutTexUnit = 2;
 
 export default function render() {
   // -- render to state fbo --
@@ -40,6 +43,10 @@ export default function render() {
   gl.activeTexture(gl.TEXTURE0 + stateTexUnit);
   gl.bindTexture(gl.TEXTURE_2D, state.textures[state.lastRenderIndex]);
   gl.uniform1i(stateLocations.uState, stateTexUnit);
+
+  gl.activeTexture(gl.TEXTURE0 + lutTexUnit);
+  gl.bindTexture(gl.TEXTURE_2D, textureLut);
+  gl.uniform1i(stateLocations.uLut, lutTexUnit);
 
   gl.uniform2f(stateLocations.uResolution, gl.canvas.width, gl.canvas.height);
   gl.uniform3f(

@@ -32,13 +32,19 @@ out vec4 outColor;
 
 const float PI = acos(-1.);
 
-const vec3 LOSE_TEXT_COL = vec3(1, 0, 0);
-const vec3 WIN_TEXT_COL = vec3(0, 1, 0);
-const vec3 TIE_TEXT_COL = vec3(1, 0, 1);
+// using solarized color theme
+const vec3 BG_COL        = vec3(0.00, 0.17, 0.21);
+const vec3 X_COL         = vec3(0.15, 0.55, 0.82) - BG_COL;
+const vec3 O_COL         = vec3(0.80, 0.29, 0.09) - BG_COL;
+const vec3 LINE_COL      = vec3(0.35, 0.43, 0.46) - BG_COL;
+const vec3 TEXT_COL      = vec3(0.35, 0.43, 0.46);
+const vec3 GLOW_TEXT_COL = vec3(0.03, 0.21, 0.26);
+const vec3 LOSE_TEXT_COL = vec3(0.86, 0.20, 0.18);
+const vec3 WIN_TEXT_COL  = vec3(0.52, 0.60, 0.00);
+const vec3 TIE_TEXT_COL  = vec3(0.42, 0.44, 0.77);
 
 const float LINE_THICKNESS = 0.003;
 const float LINE_BLUR = 2.5;
-const vec3 LINE_COL = vec3(1., 0.5, 0.);
 const float PIECE_SIZE = 0.08;
 
 float X_BOUND = 0.;
@@ -161,19 +167,19 @@ void drawBoard(vec2 p, inout vec3 color) {
             const float glow = 0.01;
             float v = ( 1. - step(0., vertical) )   + max( glow/(glow+abs(vertical)) - 0.1, 0. )  ;
             float h = ( 1. - step(0., horizontal) ) + max( glow/(glow+abs(horizontal)) - 0.1, 0. );
-            color += 0.5 * clamp(0.5*(v+h), 0., 1.);
+            color += X_COL * 0.5 * clamp(0.5*(v+h), 0., 1.);
         } else {
             float sd = oSDF(q) - LINE_THICKNESS;
             const float glow = 0.01;
             float c = ( 1. - step(0., sd) ) + max( glow/(glow+abs(sd)) - 0.1, 0. );
-            color += 0.5 * clamp(c, 0., 1.);
+            color += O_COL * 0.5 * clamp(c, 0., 1.);
         }
     }
     else {
         if (board[row][col] == X || board[row][col] == X_DARKEN) {
             // draw X
             float sd = xSDF( q, time(row, col) ) - LINE_THICKNESS;
-            float c = smoothstep(lineBlur, 0., sd);
+            vec3 c = X_COL * smoothstep(lineBlur, 0., sd);
             color += board[row][col] == X_DARKEN ? 0.5 * c : c;
         }
         else if (board[row][col] == O || board[row][col] == O_DARKEN) {
@@ -183,7 +189,7 @@ void drawBoard(vec2 p, inout vec3 color) {
             float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
             // animation mask
             float mask = step( an, t );
-            float c = smoothstep(lineBlur, 0., sd) * mask;
+            vec3 c = O_COL * smoothstep(lineBlur, 0., sd) * mask;
             color += board[row][col] == O_DARKEN ? 0.5 * c : c;
         }
     }
@@ -207,7 +213,7 @@ void drawText(vec2 p, inout vec3 col) {
         vec2 q = p - vec2(2.*TEXT_SCALE.x, -1.*TEXT_SCALE.y);
         q /= TEXT_SCALE;
         q.x = (q.x - .5) / TEXT_RATIO + .5;
-        drawNumber(q, wonAmount, vec3(1.), col);
+        drawNumber(q, wonAmount, TEXT_COL, col);
 
         glowPosition = -1;
     } else if (p.x > 0. && p.y > 0.) {
@@ -222,7 +228,7 @@ void drawText(vec2 p, inout vec3 col) {
         vec2 q = p - vec2(1.*TEXT_SCALE.x, -1.*TEXT_SCALE.y);
         q /= TEXT_SCALE;
         q.x = (q.x - .5) / TEXT_RATIO + .5;
-        drawNumber(q, lostAmount, vec3(1.), col);
+        drawNumber(q, lostAmount, TEXT_COL, col);
 
         glowPosition = -1;
     } else {
@@ -249,10 +255,10 @@ void drawText(vec2 p, inout vec3 col) {
     float sdf = textSDF(posInCell, char);
     if (char != 0.) {
         float blur = TEXT_BLUR / uResolution.y;
-        col = mix(vec3(1.), col, smoothstep(-blur, +blur, sdf));
+        col = mix(TEXT_COL, col, smoothstep(-blur, +blur, sdf));
 
         if (glowPosition == 9) {
-            col += max( 0.5 * (0.02/(0.02+abs(sdf))) - 0.05, 0. );
+            col += GLOW_TEXT_COL * max( 0.5 * (0.02/(0.02+abs(sdf))) - 0.05, 0. );
         }
     }
 }
@@ -324,7 +330,7 @@ void main() {
     p.x *= aspect; // apply aspect ratio
     X_BOUND = 0.5 * aspect;
 
-    vec3 color = vec3(0.);
+    vec3 color = BG_COL;
 
     drawBoard(p, color);
     drawText(p, color);

@@ -282,13 +282,13 @@ void drawText(vec2 p, inout vec3 col) {
     // aspect correct
     posInCell.x = (posInCell.x - .5) / TEXT_RATIO + .5;
 
-    float sdf = textSDF(posInCell, char);
     if (char != 0.) {
+        float sd = textSDF(posInCell, char);
         float blur = TEXT_BLUR / uResolution.y;
-        col = mix(TEXT_COL, col, smoothstep(-blur, +blur, sdf));
+        col = mix(TEXT_COL, col, smoothstep(-blur, +blur, sd));
 
         if (glowPosition == 9) {
-            col += GLOW_TEXT_COL * max( 0.5 * (0.02/(0.02+abs(sdf))) - 0.05, 0. );
+            col += GLOW_TEXT_COL * max( 0.5 * (0.02/(0.02+abs(sd))) - 0.05, 0. );
         }
     }
 }
@@ -345,10 +345,10 @@ void drawGameOver(vec2 p, inout vec3 color) {
     // aspect correct
     posInCell.x = (posInCell.x - .5) / TEXT_RATIO + .5;
 
-    float sdf = gaussianTextSDF(posInCell, char);
     if (char != 0.) {
+        float sd = gaussianTextSDF(posInCell, char);
         float blur = 0.25 * TEXT_BLUR / uResolution.y;
-        color = mix(textCol, color, smoothstep(-blur, +blur, sdf));
+        color = mix(textCol, color, smoothstep(-blur, +blur, sd));
     }
 }
 

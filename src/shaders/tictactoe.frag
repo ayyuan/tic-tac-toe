@@ -34,6 +34,7 @@ out vec4 outColor;
 #define SHOW_DEBUG_LINES 0
 
 const float PI = acos(-1.);
+const mat2 ROT45_MAT = mat2(cos(0.785), sin(0.785), -sin(0.785), cos(0.785));
 
 // using solarized color theme
 const vec3 BG_COL        = vec3(0.00, 0.17, 0.21);
@@ -66,7 +67,7 @@ float lineSDF(in vec2 p, in vec2 a, in vec2 b) {
 
 float xSDF(vec2 p, float t) {
     // rotate coordinate system by 45 deg
-    p = mat2(cos(0.785), sin(0.785), -sin(0.785), cos(0.785)) * p;
+    p = ROT45_MAT * p;
 
     // animated values
     vec2 vEnd = mix( vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE), clamp( t, 0., 1. ) );
@@ -177,9 +178,12 @@ float easeInOutCubic(float x) {
     return x < .5 ? 4. * x * x * x : 1. - pow(-2. * x + 2., 3.) / 2.;
 }
 
-float time(int row, int col) {
-    float t = boardTime[row][col] / ANIMATE_DURATION;
-    return easeInOutCubic(t);
+float time(int pos) {
+    if (pos == animatePosition) {
+        float t = animateTime / ANIMATE_DURATION;
+        return easeInOutCubic(t);
+    }
+    return 1.;
 }
 
 void drawBoard(vec2 p, inout vec3 color) {
@@ -219,6 +223,7 @@ void drawBoard(vec2 p, inout vec3 color) {
     // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
     int row = int( id.y + 1e-6 );
     int col = int( id.x + 1e-6 );
+    int pos = rcToPos(row, col);
 
     // finite domain repetition
     vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
@@ -228,7 +233,7 @@ void drawBoard(vec2 p, inout vec3 color) {
         // draw faint glowing X or O
         if (isX) {
             // rotate coordinate system by 45 deg
-            q = mat2(cos(0.785), sin(0.785), -sin(0.785), cos(0.785)) * q;
+            q = ROT45_MAT * q;
 
             float vertical = lineSDF(q, vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE) ) - LINE_THICKNESS;
             float horizontal = lineSDF(q, vec2(-PIECE_SIZE, 0.), vec2(PIECE_SIZE, 0.) ) - LINE_THICKNESS;
@@ -245,21 +250,21 @@ void drawBoard(vec2 p, inout vec3 color) {
         }
     }
     else {
-        if (board[row][col] == X || board[row][col] == X_DARKEN) {
+        if ( containsXAt(pos) ) {
             // draw X
-            float sd = xSDF( q, time(row, col) ) - LINE_THICKNESS;
+            float sd = xSDF( q, time(pos) ) - LINE_THICKNESS;
             vec3 c = X_COL * smoothstep(lineBlur, 0., sd);
-            color += board[row][col] == X_DARKEN ? 0.5 * c : c;
+            color += c;
         }
-        else if (board[row][col] == O || board[row][col] == O_DARKEN) {
+        else if ( containsOAt(pos) ) {
             // draw O
             float sd = oSDF(q) - LINE_THICKNESS;
-            float t = time(row, col);
+            float t = time(pos);
             float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
             // animation mask
             float mask = step( an, t );
             vec3 c = O_COL * smoothstep(lineBlur, 0., sd) * mask;
-            color += board[row][col] == O_DARKEN ? 0.5 * c : c;
+            color += c;
         }
     }
 }
@@ -284,7 +289,7 @@ void drawText(vec2 p, inout vec3 col) {
         q.x = (q.x - .5) / TEXT_RATIO + .5;
         drawNumber(q, wonAmount, TEXT_COL, col);
 
-        glowPosition = -1;
+        glowPosition = NO_GLOW;
     } else if (p.x > 0. && p.y > 0.) {
         // draw "AI"
         float center = 0.5 * (X_BOUND + 0.3);
@@ -299,7 +304,7 @@ void drawText(vec2 p, inout vec3 col) {
         q.x = (q.x - .5) / TEXT_RATIO + .5;
         drawNumber(q, lostAmount, TEXT_COL, col);
 
-        glowPosition = -1;
+        glowPosition = NO_GLOW;
     } else {
         // draw "Easy Mode" / "Hard Mode"
         p -= -4.5 * TEXT_SCALE;
@@ -326,7 +331,7 @@ void drawText(vec2 p, inout vec3 col) {
         float blur = TEXT_BLUR / uResolution.y;
         col = mix(TEXT_COL, col, smoothstep(-blur, +blur, sd));
 
-        if (glowPosition == 9) {
+        if (glowPosition == TEXT_GLOW) {
             col += GLOW_TEXT_COL * max( 0.5 * (0.02/(0.02+abs(sd))) - 0.05, 0. );
         }
     }
@@ -334,7 +339,7 @@ void drawText(vec2 p, inout vec3 col) {
 
 void drawGameOver(vec2 p, inout vec3 color) {
     // draw game over overlay
-    if (animate != NO_ANIMATE || score == NA) return;
+    if (animatePosition != NO_ANIMATE || score == NA) return;
 
     vec3 textCol = vec3(1.);
     // id for each cell

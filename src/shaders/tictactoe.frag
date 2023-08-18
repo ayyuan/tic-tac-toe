@@ -44,38 +44,15 @@ const vec2 N_UP = vec2(14, 11);
 
 const vec2 T_UP = vec2(4, 10);
 
-const vec2 Y_UP = vec2(9, 10);
-const vec2 U_UP = vec2(5, 10);
-const vec2 R_UP = vec2(2, 10);
-
-const vec2 A_UP = vec2(1, 11);
-
-const vec2 P_UP = vec2(0, 10);
-const vec2 G_UP = vec2(7, 11);
-const vec2 Q_CH = vec2(15, 12); // '?' question mark
-
-const vec2 W_LO = vec2(7, 8);
-const vec2 O_LO = vec2(15, 9);
-const vec2 N_LO = vec2(14, 9);
-const vec2 C_CH = vec2(10, 12); // ':' colon
-
-const vec2 L_LO = vec2(12, 9);
-const vec2 S_LO = vec2(3, 8);
-const vec2 T_LO = vec2(4, 8);
-
-const vec2 I_LO = vec2(9, 9);
-const vec2 E_LO = vec2(5, 9);
-
-const vec2 ZERO = vec2(0, 12);
-
 const vec3 LOSE_TEXT_COL = vec3(1, 0, 0);
 const vec3 WIN_TEXT_COL = vec3(0, 1, 0);
 const vec3 TIE_TEXT_COL = vec3(1, 0, 1);
-const vec3 MODE_TEXT_COL = vec3(1);
-const vec3 TURN_TEXT_COL = vec3(1);
 
 const float TEXT_SIZE = 0.1;
 const float TEXT_SPACE = 0.6;
+const float TEXT_BLUR = 15.;
+const float TEXT_RATIO = 2.;
+const vec2 TEXT_SCALE = 0.05 * vec2(1.,TEXT_RATIO);
 
 const float LINE_THICKNESS = 0.003;
 const float PIECE_SIZE = 0.08;
@@ -110,13 +87,17 @@ float oSDF(vec2 p) {
     return abs(length(p) - radius);
 }
 
+float textSDF(vec2 p, float char) {
+	return texture(uFont, p / 16. + fract(vec2(char, 15. - floor(char / 16.)) / 16.)).w - 0.49;
+}
+
 void char(vec2 p, vec2 ch, vec3 textCol, inout vec3 col) {
-    if (abs(p.x) < 0.3 && abs(p.y) < 0.4) {
+    if (abs(p.x) < 0.5 && abs(p.y) < 0.5) {
         p += ch;
         // get signed distance to letter from texture
         float sd = texture(uFont, (p + 0.5) * (1.0 / 16.0)).w - 0.49;
         #if 1
-        float blur = 15. / uResolution.y;
+        float blur = TEXT_BLUR / uResolution.y;
         col = mix(textCol, col, smoothstep(-blur, blur, sd));
         #else
         // for debugging
@@ -125,61 +106,23 @@ void char(vec2 p, vec2 ch, vec3 textCol, inout vec3 col) {
     }
 }
 
-void statusText(vec2 uv, inout vec3 col) {
-    // draw "HARD MODE" text
-    vec2 p = uv / TEXT_SIZE;
-    vec2 pos = vec2(-2.4, -4);
-    char(p - pos, vec2(8,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p - pos, vec2(1,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p - pos, vec2(2,10), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p - pos, vec2(4,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
-    pos.x += TEXT_SPACE;
-    char(p - pos, vec2(13,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p - pos, vec2(15,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p - pos, vec2(4,11), MODE_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p - pos, vec2(5,11), MODE_TEXT_COL, col);
-}
-
-// https://www.shadertoy.com/view/llySRh
-void printNumber(vec2 p, float n, inout vec3 col) {
-    for (int i=0; i<2; i++) {
-        n /= 9.999999; // 10., // for windows :-(
-        vec2 digit = ZERO;
-        digit.x += floor( fract(n)*10. );
-        char(p, digit, TURN_TEXT_COL, col);
-        p.x += TEXT_SPACE;
+void drawChar(vec2 p, float char, vec3 textCol, inout vec3 col) {
+    if (abs(p.x-0.5) < 0.5 && abs(p.y-0.5) < 0.5) {
+        float sd = textSDF(p, char);
+        float blur = TEXT_BLUR / uResolution.y;
+        col = mix(textCol, col, smoothstep(-blur, blur, sd));
     }
 }
 
-void aiText(vec2 uv, inout vec3 col) {
-    vec2 p = uv / TEXT_SIZE;
-    float center = 0.5 * (X_BOUND + 0.3) / TEXT_SIZE;
-    
-    // draw "AI" text
-    vec2 pos = vec2(center - 0.5*TEXT_SPACE, 0.3/TEXT_SIZE - 0.5*TEXT_SPACE);
-    
-    char(p-pos, A_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, I_UP, TURN_TEXT_COL, col);
-
-    // draw AI win amount
-    vec2 tpos = vec2(center + 0.5*TEXT_SPACE, 0.15/TEXT_SIZE - 0.5*TEXT_SPACE);
-    printNumber(p-tpos, lostAmount, col);
-}
-
-void youText(vec2 uv, inout vec3 col) {
-    vec2 p = uv / TEXT_SIZE;
-    float center = 0.5 * (-X_BOUND + (-0.3)) / TEXT_SIZE;
-    
-    // draw "YOU" text
-    vec2 pos = vec2(center - TEXT_SPACE, 0.3/TEXT_SIZE - 0.5*TEXT_SPACE);
-
-    char(p-pos, Y_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, O_UP, TURN_TEXT_COL, col); pos.x += TEXT_SPACE;
-    char(p-pos, U_UP, TURN_TEXT_COL, col);
-    
-    // draw win amount
-    vec2 tpos = vec2(center + TEXT_SPACE, 0.15/TEXT_SIZE - 0.5*TEXT_SPACE);
-    printNumber(p-tpos, wonAmount, col);
+// https://www.shadertoy.com/view/llySRh
+void drawNumber(vec2 p, float n, vec3 textCol, inout vec3 col) {
+    for (int i=0; i<2; i++) {
+        n /= 9.999999; // 10., // for windows :-(
+        float digit = 48.; // 48 == ascii value for '0'
+        digit += floor( fract(n)*10. );
+        drawChar(p, digit, textCol, col);
+        p.x += 0.5;
+    }
 }
 
 // https://www.shadertoy.com/view/7tf3Ws
@@ -190,6 +133,62 @@ float easeInOutCubic(float x) {
 float time(int row, int col) {
     float t = boardTime[row][col] / ANIMATE_DURATION;
     return easeInOutCubic(t);
+}
+
+void drawText(vec2 p, inout vec3 col) {
+    // id for each cell
+    vec2 t = vec2(0.);
+
+    // contains encoding for text
+    // encoded with https://github.com/knarkowicz/ShadertoyText
+    uint v = 0u;
+    if (p.x < 0. && p.y > 0.) {
+        // draw "You"
+        float center = 0.5 * (-X_BOUND + (-0.3));
+        p.x -= center - 1.5 * TEXT_SCALE.x;
+        p.y -= 0.3 - TEXT_SCALE.y;
+        t = floor(p / TEXT_SCALE + 1e-6);
+        v = t.y == 0. ? 7696217u : v;
+        v = t.x >= 0. && t.x < 4. ? v : 0u;
+        // draw won amount
+        vec2 q = p - vec2(2.*TEXT_SCALE.x, -1.*TEXT_SCALE.y);
+        q /= TEXT_SCALE;
+        q.x = (q.x - .5) / TEXT_RATIO + .5;
+        drawNumber(q, wonAmount, vec3(1.), col);
+    } else if (p.x > 0. && p.y > 0.) {
+        // draw "AI"
+        float center = 0.5 * (X_BOUND + 0.3);
+        p.x -= center - 1. * TEXT_SCALE.x;
+        p.y -= 0.3 - TEXT_SCALE.y;
+        t = floor(p / TEXT_SCALE + 1e-6);
+        v = t.y == 0. ? 18753u : v;
+        v = t.x >= 0. && t.x < 4. ? v : 0u;
+        // draw won amount for AI (our lost amount)
+        vec2 q = p - vec2(1.*TEXT_SCALE.x, -1.*TEXT_SCALE.y);
+        q /= TEXT_SCALE;
+        q.x = (q.x - .5) / TEXT_RATIO + .5;
+        drawNumber(q, lostAmount, vec3(1.), col);
+    } else {
+        // draw "Hard Mode"
+        p -= -4.5 * TEXT_SCALE;
+        t = floor(p / TEXT_SCALE + 1e-6);
+        v = t.y == 0. ? ( t.x < 4. ? 1146241352u : ( t.x < 8. ? 1146047776u : 69u ) ) : v;
+        v = t.x >= 0. && t.x < 12. ? v : 0u;
+    }
+
+    // extract character
+	float char = float((v >> uint(8. * t.x)) & 255u);
+
+    // compute [0;1] position in the current cell
+	vec2 posInCell = (p - t * TEXT_SCALE) / TEXT_SCALE;
+    // aspect correct
+	posInCell.x = (posInCell.x - .5) / TEXT_RATIO + .5;
+
+	float sdf = textSDF(posInCell, char);
+	if (char != 0.) {
+        float blur = TEXT_BLUR / uResolution.y;
+		col = mix(vec3(1.), col, smoothstep(-blur, +blur, sdf));
+	}
 }
 
 void main() {
@@ -259,10 +258,7 @@ void main() {
         color += board[row][col] == O_DARKEN ? 0.5 * c : c;
     }
 
-    // draw text
-    statusText(p, color);
-    aiText(p, color);
-    youText(p, color);
+    drawText(p, color);
     
     // draw game over overlay
     if (animate == NO_ANIMATE) {

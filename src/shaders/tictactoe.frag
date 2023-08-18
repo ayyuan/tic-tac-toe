@@ -300,25 +300,29 @@ void main() {
     color += vec3(0, 1, 0) * smoothstep(0.001, 0., l);
 #endif
 
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            if (board[i][j] == X || board[i][j] == X_DARKEN) {
-                // draw X
-                float x = -0.2 + 0.2 * float(j);
-                float y = +0.2 - 0.2 * float(i);
-                float sd = xSDF(p - vec2(x, y)) - LINE_THICKNESS;
-                float c = smoothstep(lineBlur, 0., sd);
-                color += board[i][j] == X_DARKEN ? 0.5 * c : c;
-            }
-            else if (board[i][j] == O || board[i][j] == O_DARKEN) {
-                // draw O
-                float x = -0.2 + 0.2 * float(j);
-                float y = +0.2 - 0.2 * float(i);
-                float sd = oSDF(p - vec2(x, y)) - LINE_THICKNESS;
-                float c = smoothstep(lineBlur, 0., sd);
-                color += board[i][j] == O_DARKEN ? 0.5 * c : c;
-            }
-        }
+    // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3
+    vec2 id = (p + 0.3) * 5.;
+    // compute id for every cell
+    id = clamp( floor(id), 0., 2. );
+    // flip it so the origin is at top left of board instead of bot left
+    id.y = 2. - id.y;
+    // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
+    int row = int( id.y + 1e-6 );
+    int col = int( id.x + 1e-6 );
+
+    // finite domain repetition
+    vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
+    if (board[row][col] == X || board[row][col] == X_DARKEN) {
+        // draw X
+        float sd = xSDF(q) - LINE_THICKNESS;
+        float c = smoothstep(lineBlur, 0., sd);
+        color += board[row][col] == X_DARKEN ? 0.5 * c : c;
+    }
+    else if (board[row][col] == O || board[row][col] == O_DARKEN) {
+        // draw O
+        float sd = oSDF(q) - LINE_THICKNESS;
+        float c = smoothstep(lineBlur, 0., sd);
+        color += board[row][col] == O_DARKEN ? 0.5 * c : c;
     }
 
     // draw text

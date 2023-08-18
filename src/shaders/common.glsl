@@ -61,7 +61,8 @@ void loadState() {
 
 // Store the state variables in outColor
 void storeState(inout float outColor) {
-    int i = int(gl_FragCoord.x) + int(gl_FragCoord.y) * int(uDataResolution.x);
+    int w = textureSize(uState, 0).x;
+    int i = int(gl_FragCoord.x) + int(gl_FragCoord.y) * w;
     int j = 0;
     #define SET(j, v) if (i == j) outColor = float(v)
     #define BOOL(name) SET(j, name); j += 1;

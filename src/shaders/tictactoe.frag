@@ -18,7 +18,6 @@
 precision highp float;
 
 uniform vec2 uResolution;
-uniform vec2 uDataResolution;
 uniform sampler2D uFont;
 uniform sampler2D uState;
 

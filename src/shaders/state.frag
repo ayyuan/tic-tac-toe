@@ -6,7 +6,6 @@
 
 precision highp float;
 
-uniform vec2 uDataResolution;
 uniform vec2 uResolution;
 uniform vec3 uMouse;
 uniform sampler2D uState;

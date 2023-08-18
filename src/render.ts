@@ -7,13 +7,11 @@ import state from './state';
 // uniform locations
 const tictactoeLocations = {
   uResolution: gl.getUniformLocation(programTicTacToe, 'uResolution'),
-  uDataResolution: gl.getUniformLocation(programTicTacToe, 'uDataResolution'),
   uFont: gl.getUniformLocation(programTicTacToe, 'uFont'),
   uState: gl.getUniformLocation(programTicTacToe, 'uState'),
 };
 const stateLocations = {
   uResolution: gl.getUniformLocation(programState, 'uResolution'),
-  uDataResolution: gl.getUniformLocation(programState, 'uDataResolution'),
   uState: gl.getUniformLocation(programState, 'uState'),
   uMouse: gl.getUniformLocation(programState, 'uMouse'),
 };
@@ -44,11 +42,6 @@ export default function render() {
   gl.uniform1i(stateLocations.uState, stateTexUnit);
 
   gl.uniform2f(stateLocations.uResolution, gl.canvas.width, gl.canvas.height);
-  gl.uniform2f(
-    stateLocations.uDataResolution,
-    state.resolution.width,
-    state.resolution.height
-  );
   gl.uniform3f(
     stateLocations.uMouse,
     mousePosX,
@@ -78,11 +71,6 @@ export default function render() {
   gl.uniform1i(tictactoeLocations.uFont, fontTexUnit);
 
   gl.uniform2f(tictactoeLocations.uResolution, gl.canvas.width, gl.canvas.height);
-  gl.uniform2f(
-    tictactoeLocations.uDataResolution,
-    state.resolution.width,
-    state.resolution.height
-  );
 
   // render
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);

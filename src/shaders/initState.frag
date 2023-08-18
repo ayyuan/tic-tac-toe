@@ -6,7 +6,6 @@
 
 precision highp float;
 
-uniform vec2 uDataResolution;
 uniform sampler2D uState;
 
 out float outColor;

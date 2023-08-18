@@ -70,12 +70,9 @@ function initState(fb: WebGLFramebuffer) {
   // program
   gl.useProgram(programInitState);
 
-  // uniforms
-  gl.uniform2f(
-    gl.getUniformLocation(programInitState, 'uDataResolution'),
-    WIDTH,
-    HEIGHT,
-  );
+  // need this line because of:
+  // https://stackoverflow.com/questions/62074822/webgl-feedback-loop-formed-between-framebuffer-and-active-texture
+  gl.bindTexture(gl.TEXTURE_2D, null);
 
   // render
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);

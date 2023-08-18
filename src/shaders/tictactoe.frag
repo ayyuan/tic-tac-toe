@@ -28,15 +28,44 @@ out vec4 outColor;
 #define SHOW_DEBUG_LINES 0
 
 // letter positions in texture
-const vec2 Y_UP = vec2(9, 10);
+const vec2 L_UP = vec2(12, 11);
 const vec2 O_UP = vec2(15, 11);
+const vec2 S_UP = vec2(3, 10);
+const vec2 E_UP = vec2(5, 11);
+
+const vec2 W_UP = vec2(7, 10);
+const vec2 I_UP = vec2(9, 11);
+const vec2 N_UP = vec2(14, 11);
+
+const vec2 T_UP = vec2(4, 10);
+
+const vec2 Y_UP = vec2(9, 10);
 const vec2 U_UP = vec2(5, 10);
+const vec2 R_UP = vec2(2, 10);
 
 const vec2 A_UP = vec2(1, 11);
-const vec2 I_UP = vec2(9, 11);
+
+const vec2 P_UP = vec2(0, 10);
+const vec2 G_UP = vec2(7, 11);
+const vec2 Q_CH = vec2(15, 12); // '?' question mark
+
+const vec2 W_LO = vec2(7, 8);
+const vec2 O_LO = vec2(15, 9);
+const vec2 N_LO = vec2(14, 9);
+const vec2 C_CH = vec2(10, 12); // ':' colon
+
+const vec2 L_LO = vec2(12, 9);
+const vec2 S_LO = vec2(3, 8);
+const vec2 T_LO = vec2(4, 8);
+
+const vec2 I_LO = vec2(9, 9);
+const vec2 E_LO = vec2(5, 9);
 
 const vec2 ZERO = vec2(0, 12);
 
+const vec3 LOSE_TEXT_COL = vec3(1, 0, 0);
+const vec3 WIN_TEXT_COL = vec3(0, 1, 0);
+const vec3 TIE_TEXT_COL = vec3(1, 0, 1);
 const vec3 MODE_TEXT_COL = vec3(1);
 const vec3 TURN_TEXT_COL = vec3(1);
 
@@ -211,6 +240,34 @@ void main() {
     statusText(p, color);
     aiText(p, color);
     youText(p, color);
+    
+    // draw game over overlay
+    if (score == LOSE) {
+        color *= 0.4;
+        p /= 0.25;
+        // draw "LOSE" text
+        vec2 pos = vec2(-0.9, 0);
+        char(p - pos, L_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
+        char(p - pos, O_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
+        char(p - pos, S_UP, LOSE_TEXT_COL, color); pos.x += TEXT_SPACE;
+        char(p - pos, E_UP, LOSE_TEXT_COL, color);
+    } else if (score == WIN) {
+        color *= 0.4;
+        p /= 0.25;
+        // draw "WIN" text
+        vec2 pos = vec2(-0.6, 0);
+        char(p - pos, W_UP, WIN_TEXT_COL, color); pos.x += TEXT_SPACE;
+        char(p - pos, I_UP, WIN_TEXT_COL, color); pos.x += TEXT_SPACE;
+        char(p - pos, N_UP, WIN_TEXT_COL, color);
+    } else if (score == TIE) {
+        color *= 0.4;
+        p /= 0.25;
+        // draw "TIE" text
+        vec2 pos = vec2(-0.6, 0);
+        char(p - pos, T_UP, TIE_TEXT_COL, color); pos.x += TEXT_SPACE;
+        char(p - pos, I_UP, TIE_TEXT_COL, color); pos.x += TEXT_SPACE;
+        char(p - pos, E_UP, TIE_TEXT_COL, color);
+    }
 
     outColor = vec4(color, 1.0);
 }

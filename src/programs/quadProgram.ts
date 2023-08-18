@@ -1,5 +1,5 @@
-import gl from './gl';
-import quadVert from './shaders/quad.vert?raw';
+import gl from '../gl';
+import quadVert from '../shaders/quad.vert';
 import quadAttribBuffer from './quadAttribBuffer';
 
 export default function quadProgram(fragSrc: string) {

@@ -1,4 +1,4 @@
-import gl from './gl';
+import gl from '../gl';
 
 const quadAttribBuffer = gl.createBuffer();
 if (quadAttribBuffer === null) {

@@ -93,25 +93,64 @@ float textSDF(vec2 p, float char) {
     return textSDF(p, char, vec2(0.));
 }
 
-// gaussian blur on distance channel
-// https://www.shadertoy.com/view/4sVyWh
+// gaussian blur on distance channel, idea from: https://www.shadertoy.com/view/4sVyWh
+// but taking advantage of hardware filtering to reduce 9 texture calls per pixel to 4
+// https://lisyarus.github.io/blog/graphics/2022/04/21/compute-blur.html#separable-kernel-with-hardware-filtering
 float gaussianTextSDF(vec2 p, float char) {
-    const int size = 3;
-    // NOTE: not sure why but using a vec3 instead of float[3] here yields different results
-    const float[size] kernel = float[](1., 2., 1.);
-    float dist  = 0.;
-    float total = 0.;
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            float w = kernel[i] * kernel[j];
-            vec2 delta = vec2(float(i-1), float(j-1)) / float( textureSize(uFont, 0) );
+#if 1
+    // weights and offsets/deltas were precomputed
+    // below gives the functionally equivalent code
+    // without precomputed weights and offsets
+    const float ONE_THIRD = 1. / 3.;
+    const float TWO_THIRD = 2. / 3.;
 
-            float sd = textSDF(p, char, delta);
-            dist  += w * sd;
-            total += w;
+    float dist = 0.;
+    vec2 delta;
+
+    delta = vec2(-TWO_THIRD) / float( textureSize(uFont, 0) );
+    dist += 0.5625 * textSDF(p, char, delta);
+
+    delta = vec2(-ONE_THIRD, TWO_THIRD) / float( textureSize(uFont, 0) );
+    dist += 0.5625 * textSDF(p, char, delta);
+
+    delta = vec2(TWO_THIRD, -ONE_THIRD) / float( textureSize(uFont, 0) );
+    dist += 0.5625 * textSDF(p, char, delta);
+
+    delta = vec2(ONE_THIRD) / float( textureSize(uFont, 0) );
+    dist += 0.5625 * textSDF(p, char, delta);
+
+    return dist;
+#else
+    // functionally equivalent to above code but without the precomputation
+
+    // binomial filter (1,2,1) normalized
+    const float[3] w = float[](0.25, 0.5, 0.25);
+
+    float dist = 0.;
+
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 2; j++) {
+            float w00 = w[i+0] * w[j]; float w01 = w[i+0] * w[j+1];
+            float w10 = w[i+1] * w[j]; float w11 = w[i+1] * w[j+1];
+
+            // interpolation horizontally
+            float w0 = w00 + w01;
+            float w1 = w10 + w11;
+            float tx = w01 / w0; // should be same as: w11 / w1;
+
+            // interpolation vertically
+            float ww = w0 + w1;
+            float ty = w1 / ww;
+
+            if (i == 0) tx = -tx;
+            if (j == 0) ty = -ty;
+
+            vec2 delta = vec2(tx,ty) / float( textureSize(uFont, 0) );
+            dist += ww * textSDF(p, char, delta);
         }
     }
-    return dist / total;
+    return dist;
+#endif
 }
 
 void drawChar(vec2 p, float char, vec3 textCol, inout vec3 col) {

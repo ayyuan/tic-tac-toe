@@ -17,29 +17,6 @@ in vec2 vPosition;
 
 out float outColor;
 
-// win positions assuming the board is positioned as:
-//       +   +   
-//     0 | 1 | 2 
-//   +---+---+---+
-//     3 | 4 | 5 
-//   +---+---+---+
-//     6 | 7 | 8 
-//       +   +   
-// NOTE: 0 prefix means octal (base 8)
-// horizontal wins
-const int WIN_0TO2 = 0007; // 0b 000 000 111;
-const int WIN_3TO5 = 0070; // 0b 000 111 000;
-const int WIN_6TO8 = 0700; // 0b 111 000 000;
-// vertical wins
-const int WIN_0TO6 = 0111; // 0b 001 001 001;
-const int WIN_1TO7 = 0222; // 0b 010 010 010;
-const int WIN_2TO8 = 0444; // 0b 100 100 100;
-// diagonal wins
-const int WIN_0TO8 = 0421; // 0b 100 010 001;
-const int WIN_2TO6 = 0124; // 0b 001 010 100;
-// tie
-const int TIE_POS  = 0777; // 0b 111 111 111;
-
 #include "./common.glsl"
 
 // https://nullprogram.com/blog/2018/07/31/
@@ -59,22 +36,34 @@ float rand(uint seed) {
     return 2.32830629776081821092e-10 * float( triple32(seed) );
 }
 
-bool hasWonAt(int pos, int win) {
-    return (pos & win) == win;
+int hasWonAt(int pos, int win) {
+    if ( (pos & win) == win ) {
+        // |= is crucial so that we are able to highlight multiple wins
+        winPositions |= win;
+        return 1;
+    }
+    return 0;
 }
 
 bool hasWon(int pos) {
+    // NOTE: we are using bitwise | to prevent short circuit boolean evaluation
+    // so we can account for cases like this where there are multiple wins:
+    // X X X
+    // O X O
+    // O X O
+    // so that we can highlight all of the wins instead of just 1
+
     // horizontal wins
-    return hasWonAt(pos, WIN_0TO2) ||
-           hasWonAt(pos, WIN_3TO5) ||
-           hasWonAt(pos, WIN_6TO8) ||
+    return (hasWonAt(pos, WIN_0TO2) |
+            hasWonAt(pos, WIN_3TO5) |
+            hasWonAt(pos, WIN_6TO8) |
     // vertical wins
-           hasWonAt(pos, WIN_0TO6) ||
-           hasWonAt(pos, WIN_1TO7) ||
-           hasWonAt(pos, WIN_2TO8) ||
+            hasWonAt(pos, WIN_0TO6) |
+            hasWonAt(pos, WIN_1TO7) |
+            hasWonAt(pos, WIN_2TO8) |
     // diagonal wins
-           hasWonAt(pos, WIN_0TO8) ||
-           hasWonAt(pos, WIN_2TO6);
+            hasWonAt(pos, WIN_0TO8) |
+            hasWonAt(pos, WIN_2TO6)) != 0;
 }
 
 void updateScore() {

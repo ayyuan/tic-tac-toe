@@ -27,6 +27,29 @@ const float ANIMATE_DURATION = 0.250; // in seconds
 const float TEXT_RATIO = 2.;
 const vec2  TEXT_SCALE = 0.05 * vec2(1.,TEXT_RATIO);
 
+// win positions assuming the board is positioned as:
+//       +   +   
+//     0 | 1 | 2 
+//   +---+---+---+
+//     3 | 4 | 5 
+//   +---+---+---+
+//     6 | 7 | 8 
+//       +   +   
+// NOTE: 0 prefix means octal (base 8)
+// horizontal wins
+const int WIN_0TO2 = 0007; // 0b 000 000 111;
+const int WIN_3TO5 = 0070; // 0b 000 111 000;
+const int WIN_6TO8 = 0700; // 0b 111 000 000;
+// vertical wins
+const int WIN_0TO6 = 0111; // 0b 001 001 001;
+const int WIN_1TO7 = 0222; // 0b 010 010 010;
+const int WIN_2TO8 = 0444; // 0b 100 100 100;
+// diagonal wins
+const int WIN_0TO8 = 0421; // 0b 100 010 001;
+const int WIN_2TO6 = 0124; // 0b 001 010 100;
+// tie
+const int TIE_POS  = 0777; // 0b 111 111 111;
+
 #define STATE              \
     BOOL(onHover)          \
     INT(glowPosition)      \

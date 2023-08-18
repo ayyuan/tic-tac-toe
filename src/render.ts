@@ -10,6 +10,7 @@ const tictactoeLocations = {
   uResolution: gl.getUniformLocation(programTicTacToe, 'uResolution'),
   uFont: gl.getUniformLocation(programTicTacToe, 'uFont'),
   uState: gl.getUniformLocation(programTicTacToe, 'uState'),
+  uTime: gl.getUniformLocation(programTicTacToe, 'uTime'),
 };
 const stateLocations = {
   uResolution: gl.getUniformLocation(programState, 'uResolution'),
@@ -100,6 +101,7 @@ export default function render(deltaTime: number) {
   gl.bindTexture(gl.TEXTURE_2D, textureFont);
   gl.uniform1i(tictactoeLocations.uFont, fontTexUnit);
 
+  gl.uniform1f(tictactoeLocations.uTime, performance.now() / 1000);
   gl.uniform2f(tictactoeLocations.uResolution, gl.canvas.width, gl.canvas.height);
 
   // render

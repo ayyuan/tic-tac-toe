@@ -24,6 +24,7 @@
 precision highp float;
 
 uniform vec2 uResolution;
+uniform float uTime;
 uniform sampler2D uFont;
 uniform sampler2D uState;
 
@@ -34,6 +35,7 @@ out vec4 outColor;
 #define SHOW_DEBUG_LINES 0
 
 const float PI = acos(-1.);
+const float TAU = 2.*PI;
 const mat2 ROT45_MAT = mat2(cos(0.785), sin(0.785), -sin(0.785), cos(0.785));
 
 // using solarized color theme
@@ -186,6 +188,36 @@ float time(int pos) {
     return 1.;
 }
 
+float drawGlowX(vec2 q) {
+    // rotate coordinate system by 45 deg
+    q = ROT45_MAT * q;
+
+    float vertical = lineSDF(q, vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE) ) - LINE_THICKNESS;
+    float horizontal = lineSDF(q, vec2(-PIECE_SIZE, 0.), vec2(PIECE_SIZE, 0.) ) - LINE_THICKNESS;
+
+    const float glow = 0.01;
+    float v = ( 1. - step(0., vertical) )   + max( glow/(glow+abs(vertical)) - 0.1, 0. )  ;
+    float h = ( 1. - step(0., horizontal) ) + max( glow/(glow+abs(horizontal)) - 0.1, 0. );
+    return clamp(0.5*(v+h), 0., 1.);
+}
+
+float drawGlowO(vec2 q) {
+    float sd = oSDF(q) - LINE_THICKNESS;
+    const float glow = 0.01;
+    float c = ( 1. - step(0., sd) ) + max( glow/(glow+abs(sd)) - 0.1, 0. );
+    return clamp(c, 0., 1.);
+}
+
+vec3 gradient(vec2 p, vec3 col) {
+    float t = mod( 3.*uTime, TAU );
+    p *= 10.;
+
+    vec3 dir = (winPositions == WIN_0TO2 || winPositions == WIN_3TO5 || winPositions == WIN_6TO8) ?
+                vec3(p.y, -p.x, p.y) :
+                p.xyx;
+    return mix( col-0.1, col+0.1, 0.5 + 0.5*cos(t + dir + vec3(0.,2.,4.)) );
+}
+
 void drawBoard(vec2 p, inout vec3 color) {
     // drawing tic tac toe board
     float lineBlur = LINE_BLUR / uResolution.y;
@@ -232,39 +264,45 @@ void drawBoard(vec2 p, inout vec3 color) {
     if (row == grow && col == gcol) {
         // draw faint glowing X or O
         if (isX) {
-            // rotate coordinate system by 45 deg
-            q = ROT45_MAT * q;
-
-            float vertical = lineSDF(q, vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE) ) - LINE_THICKNESS;
-            float horizontal = lineSDF(q, vec2(-PIECE_SIZE, 0.), vec2(PIECE_SIZE, 0.) ) - LINE_THICKNESS;
-
-            const float glow = 0.01;
-            float v = ( 1. - step(0., vertical) )   + max( glow/(glow+abs(vertical)) - 0.1, 0. )  ;
-            float h = ( 1. - step(0., horizontal) ) + max( glow/(glow+abs(horizontal)) - 0.1, 0. );
-            color += X_COL * 0.5 * clamp(0.5*(v+h), 0., 1.);
+            color += X_COL * 0.5 * drawGlowX(q);
         } else {
-            float sd = oSDF(q) - LINE_THICKNESS;
-            const float glow = 0.01;
-            float c = ( 1. - step(0., sd) ) + max( glow/(glow+abs(sd)) - 0.1, 0. );
-            color += O_COL * 0.5 * clamp(c, 0., 1.);
+            color += O_COL * 0.5 * drawGlowO(q);
         }
     }
     else {
         if ( containsXAt(pos) ) {
             // draw X
-            float sd = xSDF( q, time(pos) ) - LINE_THICKNESS;
-            vec3 c = X_COL * smoothstep(lineBlur, 0., sd);
-            color += c;
+            if (// is pos part of the winning positions?
+                 ((winPositions >> pos) & 1) == 1 &&
+                // is X part of the winning positions?
+                  (xPositions & winPositions) == winPositions ) {
+                // part of the winning triple so make it glow and animated
+                color += gradient(p, X_COL+vec3(-0.15,0.1,-0.15)) * drawGlowX(q);
+            } else {
+                // draw normal X
+                float sd = xSDF( q, time(pos) ) - LINE_THICKNESS;
+                vec3 c = X_COL * smoothstep(lineBlur, 0., sd);
+                color += score != NA ? 0.5*c : c;
+            }
         }
         else if ( containsOAt(pos) ) {
             // draw O
-            float sd = oSDF(q) - LINE_THICKNESS;
-            float t = time(pos);
-            float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
-            // animation mask
-            float mask = step( an, t );
-            vec3 c = O_COL * smoothstep(lineBlur, 0., sd) * mask;
-            color += c;
+            if (// is pos part of the winning positions?
+                 ((winPositions >> pos) & 1) == 1 &&
+                // is O part of the winning positions?
+                  (oPositions & winPositions) == winPositions ) {
+                // part of the winning triple so make it glow and animated
+                color += gradient(p, O_COL) * drawGlowO(q);
+            } else {
+                // draw normal O
+                float sd = oSDF(q) - LINE_THICKNESS;
+                float t = time(pos);
+                float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
+                // animation mask
+                float mask = step( an, t );
+                vec3 c = O_COL * smoothstep(lineBlur, 0., sd) * mask;
+                color += score != NA ? 0.5*c : c;
+            }
         }
     }
 }

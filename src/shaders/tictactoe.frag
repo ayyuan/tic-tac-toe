@@ -117,7 +117,7 @@ void char(vec2 p, vec2 ch, vec3 textCol, inout vec3 col) {
         float sd = texture(uFont, (p + 0.5) * (1.0 / 16.0)).w - 0.49;
         #if 1
         float blur = 15. / uResolution.y;
-        col += mix(textCol, col, smoothstep(-blur, blur, sd));
+        col = mix(textCol, col, smoothstep(-blur, blur, sd));
         #else
         // for debugging
         col += sd;

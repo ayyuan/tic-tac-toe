@@ -208,7 +208,16 @@ export default function createLut(width: number, height: number) {
   
   const lut = new Float32Array( width * height );
   lut.fill(-1);
-  for (const board of generateBoards()) {
+
+  const gen = generateBoards();
+  // ideal move for an empty board should be in 1 of the 4 corners
+  // but our current algo. doesn't have enough heuristics to determine
+  // this since an ideal game would always end in a tie so our algo.
+  // scores all the starting moves equally
+  const emptyBoard = gen.next().value;
+  lut[ encoding(emptyBoard) ] = randomChoice([0, 2, 6, 8]);
+
+  for (const board of gen) {
     if (rotationExists(board, lut)) continue;
     const player = nextPlayer(board);    
     lut[ encoding(board) ] = minimax( board, player, player ).move;
@@ -311,52 +320,63 @@ if (import.meta.vitest) {
 
     it('best counter to 1st move to corner', () => {
       // optimal move for O should be in middle
-      const b1: Board = [
+      const b: Board = [
         X, _, _,
         _, _, _,
         _, _, _,
       ];
-      expect( lut[ encoding(b1) ] ).toBe(4);
+      expect( lut[ encoding(b) ] ).toBe(4);
     });
+
+    it('optimal starting move', () => {
+      // optimal move should be in one of the corners
+      const b: Board = [
+        _, _, _,
+        _, _, _,
+        _, _, _,
+      ];
+      expect( [0, 2, 6, 8] ).toContain( lut[ encoding(b) ] );
+    });
+
 
     it('win', () => {
       // optimal move for O should be 2 to win
-      const b2: Board = [
+      const b: Board = [
         X, _, _,
         X, O, X,
         O, X, O,
       ];
-      expect( lut[ encoding(b2) ] ).toBe(2);
+      expect( lut[ encoding(b) ] ).toBe(2);
     });
 
     it('forcing a win', () => {
       // optimal move for X should be 6 to force a win
-      const b3: Board = [
+      const b: Board = [
         O, O, X,
         X, _, O,
         _, _, X,
       ];
-      expect( lut[ encoding(b3) ] ).toBe(6);
+      expect( lut[ encoding(b) ] ).toBe(6);
     });
 
     it('doomed to lose', () => {
       // no optimal moves here, both available moves are equally bad (doomed to lose)
-      const b4: Board = [
+      const b: Board = [
         O, O, X,
         X, _, O,
         X, _, X,
       ];
-      expect( [4, 7] ).toContain( lut[ encoding(b4) ] );
+      expect( [4, 7] ).toContain( lut[ encoding(b) ] );
     });
 
     it('blocking opponent', () => {
       // optimal move for O should be 2 to block X
-      const b5: Board = [
+      const b: Board = [
         _, X, _,
         _, _, X,
         O, O, X,
       ];
-      expect( lut[ encoding(b5) ] ).toBe(2);
+      expect( lut[ encoding(b) ] ).toBe(2);
     });
 
     it('rotated board', () => {

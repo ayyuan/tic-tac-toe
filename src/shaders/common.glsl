@@ -32,8 +32,7 @@ float ANIMATE_DURATION = 0.250; // in seconds
     FLOAT(score)           \
     FLOAT(wonAmount)       \
     FLOAT(lostAmount)      \
-    FLOAT(tieAmount)       \
-    IVEC2(animate)          \
+    IVEC2(animate)         \
     MAT3(boardTime)        \
     MAT3(board)
 

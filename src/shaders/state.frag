@@ -108,7 +108,6 @@ void checkBoard() {
     // darken all cells
     darkenAllExcept( ivec2(-1), ivec2(-1), ivec2(-1) );
     score = TIE;
-    tieAmount += 1.0;
 }
 
 void move(int row, int col) {

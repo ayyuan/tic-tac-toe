@@ -18,7 +18,7 @@ void main() {
     youStartPrevGame = true;
     score = NA;
     
-    wonAmount = lostAmount = tieAmount = 0.;
+    wonAmount = lostAmount = 0.;
 
     animate = NO_ANIMATE;
     boardTime = mat3(0.);

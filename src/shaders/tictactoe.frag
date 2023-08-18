@@ -55,6 +55,8 @@ const float TEXT_RATIO = 2.;
 const vec2 TEXT_SCALE = 0.05 * vec2(1.,TEXT_RATIO);
 
 const float LINE_THICKNESS = 0.003;
+const float LINE_BLUR = 2.5;
+const vec3 LINE_COL = vec3(1., 0.5, 0.);
 const float PIECE_SIZE = 0.08;
 
 float X_BOUND = 0.;
@@ -135,6 +137,64 @@ float time(int row, int col) {
     return easeInOutCubic(t);
 }
 
+void drawBoard(vec2 p, inout vec3 color) {
+    // drawing tic tac toe board
+    float lineBlur = LINE_BLUR / uResolution.y;
+    // left vertical line
+    float l = lineSDF(p, vec2(-0.1, 0.3), vec2(-0.1, -0.3)) - LINE_THICKNESS;
+    color += LINE_COL * smoothstep(lineBlur, 0., l);
+    // right vertical line
+    l = lineSDF(p, vec2(0.1, 0.3), vec2(0.1, -0.3)) - LINE_THICKNESS;
+    color += LINE_COL * smoothstep(lineBlur, 0., l);
+    // bottom horizontal line
+    l = lineSDF(p, vec2(0.3, -0.1), vec2(-0.3, -0.1)) - LINE_THICKNESS;
+    color += LINE_COL * smoothstep(lineBlur, 0., l);
+    // top horizontal line
+    l = lineSDF(p, vec2(0.3, 0.1), vec2(-0.3, 0.1)) - LINE_THICKNESS;
+    color += LINE_COL * smoothstep(lineBlur, 0., l);
+
+#if SHOW_DEBUG_LINES
+    // left vertical line
+    l = lineSDF(p, vec2(-0.3, 100), vec2(-0.3, -100));
+    color += vec3(0, 1, 0) * smoothstep(0.001, 0., l);
+    // right vertical line
+    l = lineSDF(p, vec2(0.3, 100), vec2(0.3, -100));
+    color += vec3(0, 1, 0) * smoothstep(0.001, 0., l);
+    // top horizontal line
+    l = lineSDF(p, vec2(-100, 0.3), vec2(100, 0.3));
+    color += vec3(0, 1, 0) * smoothstep(0.001, 0., l);
+#endif
+
+    // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3
+    vec2 id = (p + 0.3) * 5.;
+    // compute id for every cell
+    id = clamp( floor(id), 0., 2. );
+    // flip it so the origin is at top left of board instead of bot left
+    id.y = 2. - id.y;
+    // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
+    int row = int( id.y + 1e-6 );
+    int col = int( id.x + 1e-6 );
+
+    // finite domain repetition
+    vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
+    if (board[row][col] == X || board[row][col] == X_DARKEN) {
+        // draw X
+        float sd = xSDF( q, time(row, col) ) - LINE_THICKNESS;
+        float c = smoothstep(lineBlur, 0., sd);
+        color += board[row][col] == X_DARKEN ? 0.5 * c : c;
+    }
+    else if (board[row][col] == O || board[row][col] == O_DARKEN) {
+        // draw O
+        float sd = oSDF(q) - LINE_THICKNESS;
+        float t = time(row, col);
+        float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
+        // animation mask
+        float mask = step( an, t );
+        float c = smoothstep(lineBlur, 0., sd) * mask;
+        color += board[row][col] == O_DARKEN ? 0.5 * c : c;
+    }
+}
+
 void drawText(vec2 p, inout vec3 col) {
     // id for each cell
     vec2 t = vec2(0.);
@@ -201,63 +261,7 @@ void main() {
 
     vec3 color = vec3(0.);
 
-    float lineBlur = 2.5 / uResolution.y;  
-    // drawing tic tac toe board
-    const vec3 lineCol = vec3(1., 0.5, 0.);
-    // left vertical line
-    float l = lineSDF(p, vec2(-0.1, 0.3), vec2(-0.1, -0.3)) - LINE_THICKNESS;
-    color += lineCol * smoothstep(lineBlur, 0., l);
-    // right vertical line
-    l = lineSDF(p, vec2(0.1, 0.3), vec2(0.1, -0.3)) - LINE_THICKNESS;
-    color += lineCol * smoothstep(lineBlur, 0., l);
-    // bottom horizontal line
-    l = lineSDF(p, vec2(0.3, -0.1), vec2(-0.3, -0.1)) - LINE_THICKNESS;
-    color += lineCol * smoothstep(lineBlur, 0., l);
-    // top horizontal line
-    l = lineSDF(p, vec2(0.3, 0.1), vec2(-0.3, 0.1)) - LINE_THICKNESS;
-    color += lineCol * smoothstep(lineBlur, 0., l);
-
-#if SHOW_DEBUG_LINES
-    // left vertical line
-    l = lineSDF(p, vec2(-0.3, 100), vec2(-0.3, -100));
-    color += vec3(0, 1, 0) * smoothstep(0.001, 0., l);
-    // right vertical line
-    l = lineSDF(p, vec2(0.3, 100), vec2(0.3, -100));
-    color += vec3(0, 1, 0) * smoothstep(0.001, 0., l);
-    // top horizontal line
-    l = lineSDF(p, vec2(-100, 0.3), vec2(100, 0.3));
-    color += vec3(0, 1, 0) * smoothstep(0.001, 0., l);
-#endif
-
-    // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3
-    vec2 id = (p + 0.3) * 5.;
-    // compute id for every cell
-    id = clamp( floor(id), 0., 2. );
-    // flip it so the origin is at top left of board instead of bot left
-    id.y = 2. - id.y;
-    // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
-    int row = int( id.y + 1e-6 );
-    int col = int( id.x + 1e-6 );
-
-    // finite domain repetition
-    vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
-    if (board[row][col] == X || board[row][col] == X_DARKEN) {
-        // draw X
-        float sd = xSDF( q, time(row, col) ) - LINE_THICKNESS;
-        float c = smoothstep(lineBlur, 0., sd);
-        color += board[row][col] == X_DARKEN ? 0.5 * c : c;
-    }
-    else if (board[row][col] == O || board[row][col] == O_DARKEN) {
-        // draw O
-        float sd = oSDF(q) - LINE_THICKNESS;
-        float t = time(row, col);
-        float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
-        // animation mask
-        float mask = step( an, t );
-        float c = smoothstep(lineBlur, 0., sd) * mask;
-        color += board[row][col] == O_DARKEN ? 0.5 * c : c;
-    }
-
+    drawBoard(p, color);
     drawText(p, color);
     
     // draw game over overlay

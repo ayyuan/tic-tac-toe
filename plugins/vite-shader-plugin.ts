@@ -1,5 +1,5 @@
 import { PluginOption, transformWithEsbuild } from 'vite';
-import { resolve, sep } from 'path';
+import { resolve, dirname } from 'path';
 import { readFileSync } from 'fs';
 
 const fileRegex = /\.(glsl|frag|vert)$/;
@@ -11,11 +11,7 @@ export default function shaderPlugin(): PluginOption {
     enforce: 'pre',
     async transform(src: string, id: string) {
       if (!fileRegex.test(id)) return;
-      // get directory path of the current file
-      // eg. for the file a/b/c/hader.glsl the directory is a/b/c/
-      const segments = id.split(sep);
-      segments.pop();
-      const directory = segments.join('/') + '/';
+      const directory = dirname(id);
 
       // replace #include with actual file contents
       // NOTE: this isn't recursive so it assumes there are no

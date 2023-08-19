@@ -168,10 +168,25 @@ int randMove(uint seed) {
 void main() {
     loadState();
 
-    // mouse position aspected corrected and normalized, mouse.y range [-0.5,0.5]
-    vec2 mouse = (uMouse.xy - 0.5*uResolution.xy) / uResolution.y;
+    // mouse position normalized [-0.5,0.5]
+    vec2 mouse = uMouse.xy / uResolution.xy - 0.5;
+    // aspect correction
+    uResolution.x > uResolution.y ?
+        (mouse.x *= uResolution.x / uResolution.y) :
+        (mouse.y *= uResolution.y / uResolution.x);
+
+    // setting up "Hard/Easy Mode" text coordinates
+    vec2 p = vec2(0.);
+    if (uResolution.x > uResolution.y) {
+        p = -4.5 * TEXT_SCALE;
+    } else { 
+        float bound  = min( 0.5 * (uResolution.y / uResolution.x), Y_BOUND_LIMIT );
+        float center = 0.5 * (-bound + (-0.3));
+        p.x = -4.5 * TEXT_SCALE.x;
+        p.y = center - 0.5 * TEXT_SCALE.y;
+    }
     // id for each letter in "Hard/Easy Mode" text
-    vec2 t = floor( (mouse + 4.5*TEXT_SCALE) / TEXT_SCALE + 1e-6 );
+    vec2 t = floor( (mouse - p) / TEXT_SCALE + 1e-6 );
 
     // -- computing which cell our mouse is currently on
     // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3

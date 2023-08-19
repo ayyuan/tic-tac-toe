@@ -50,6 +50,10 @@ const int WIN_2TO6 = 0124; // 0b 001 010 100;
 // tie
 const int TIE_POS  = 0777; // 0b 111 111 111;
 
+// boundary limits
+const float X_BOUND_LIMIT = 1.00;
+const float Y_BOUND_LIMIT = 0.75;
+
 #define STATE              \
     BOOL(onHover)          \
     INT(glowPosition)      \

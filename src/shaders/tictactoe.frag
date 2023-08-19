@@ -53,7 +53,7 @@ const float LINE_THICKNESS = 0.003;
 const float LINE_BLUR = 2.5;
 const float PIECE_SIZE = 0.08;
 
-float X_BOUND = 0.;
+float X_BOUND = 0., Y_BOUND = 0.;
 
 #include "./common.glsl"
 
@@ -315,9 +315,15 @@ void drawText(vec2 p, inout vec3 col) {
     uint v = 0u;
     if (p.x < 0. && p.y > 0.) {
         // draw "You"
-        float center = 0.5 * (-X_BOUND + (-0.3));
-        p.x -= center - 1.5 * TEXT_SCALE.x;
-        p.y -= 0.3 - TEXT_SCALE.y;
+        if (uResolution.x > uResolution.y) {
+            float center = 0.5 * (-X_BOUND + (-0.3));
+            p.x -= center - 1.5 * TEXT_SCALE.x;
+            p.y -= 0.3 - TEXT_SCALE.y;
+        } else {
+            float center = 0.5 * (Y_BOUND + 0.3);
+            p.x -= -0.2 - 1.5 * TEXT_SCALE.x;
+            p.y -= center;
+        }
         t = floor(p / TEXT_SCALE + 1e-6);
         v = t.y == 0. ? 7696217u : v;
         v = t.x >= 0. && t.x < 4. ? v : 0u;
@@ -330,9 +336,15 @@ void drawText(vec2 p, inout vec3 col) {
         glowPosition = NO_GLOW;
     } else if (p.x > 0. && p.y > 0.) {
         // draw "AI"
-        float center = 0.5 * (X_BOUND + 0.3);
-        p.x -= center - 1. * TEXT_SCALE.x;
-        p.y -= 0.3 - TEXT_SCALE.y;
+        if (uResolution.x > uResolution.y) {
+            float center = 0.5 * (X_BOUND + 0.3);
+            p.x -= center - 1. * TEXT_SCALE.x;
+            p.y -= 0.3 - TEXT_SCALE.y;
+        } else {
+            float center = 0.5 * (Y_BOUND + 0.3);
+            p.x -= 0.2 - 1. * TEXT_SCALE.x;
+            p.y -= center;
+        }
         t = floor(p / TEXT_SCALE + 1e-6);
         v = t.y == 0. ? 18753u : v;
         v = t.x >= 0. && t.x < 4. ? v : 0u;
@@ -345,7 +357,13 @@ void drawText(vec2 p, inout vec3 col) {
         glowPosition = NO_GLOW;
     } else {
         // draw "Easy Mode" / "Hard Mode"
-        p -= -4.5 * TEXT_SCALE;
+        if (uResolution.x > uResolution.y) {
+            p -= -4.5 * TEXT_SCALE;
+        } else { 
+            float center = 0.5 * (-Y_BOUND + (-0.3));
+            p.x -= -4.5 * TEXT_SCALE.x;
+            p.y -= center - 0.5 * TEXT_SCALE.y;
+        }
         t = floor(p / TEXT_SCALE + 1e-6);
         if (isEasyMode) {
             v = t.y == 0. ? ( t.x < 4. ? 2037604677u : ( t.x < 8. ? 1685015840u : 101u ) ) : v;
@@ -438,9 +456,18 @@ void main() {
     loadState();
 
     vec2 p = 0.5 * vPosition; // remap from [-1,1] to [-0.5,0.5]
-    float aspect = uResolution.x / uResolution.y;
-    p.x *= aspect; // apply aspect ratio
-    X_BOUND = 0.5 * aspect;
+    // apply aspect ratio
+    if (uResolution.x > uResolution.y) {
+        // if width > height y remains in range [-0.5,0.5] and x will be stretched
+        float aspect = uResolution.x / uResolution.y;
+        p.x *= aspect;
+        X_BOUND = min( 0.5 * aspect, X_BOUND_LIMIT );
+    } else {
+        // else vise versa, x remains in range [-0.5,0.5] and y will be stretched
+        float aspect = uResolution.y / uResolution.x;
+        p.y *= aspect;
+        Y_BOUND = min( 0.5 * aspect, Y_BOUND_LIMIT );
+    }
 
     vec3 color = BG_COL;
 

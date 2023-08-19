@@ -327,6 +327,7 @@ void drawBoard(vec2 p, inout vec3 color) {
 }
 
 void drawText(vec2 p, inout vec3 col) {
+    vec3 textCol = TEXT_COL;
     // id for each cell
     vec2 t = vec2(0.);
     // contains encoding for text
@@ -334,6 +335,8 @@ void drawText(vec2 p, inout vec3 col) {
     uint v = 0u;
     if (p.x < 0. && p.y > 0.) {
         // draw "You"
+        if (isYourTurn) textCol = (isX ? X_COL : O_COL) + BG_COL;
+
         if (uResolution.x > uResolution.y) {
             float center = 0.5 * (-X_BOUND + (-0.3));
             p.x -= center - 1.5 * TEXT_SCALE.x;
@@ -350,11 +353,13 @@ void drawText(vec2 p, inout vec3 col) {
         vec2 q = p - vec2(2.*TEXT_SCALE.x, -1.*TEXT_SCALE.y);
         q /= TEXT_SCALE;
         q.x = (q.x - .5) / TEXT_RATIO + .5;
-        drawNumber(q, wonAmount, TEXT_COL, col);
+        drawNumber(q, wonAmount, textCol, col);
 
         glowPosition = NO_GLOW;
     } else if (p.x > 0. && p.y > 0.) {
         // draw "AI"
+        if (!isYourTurn) textCol = (isX ? X_COL : O_COL) + BG_COL;
+
         if (uResolution.x > uResolution.y) {
             float center = 0.5 * (X_BOUND + 0.3);
             p.x -= center - 1. * TEXT_SCALE.x;
@@ -371,7 +376,7 @@ void drawText(vec2 p, inout vec3 col) {
         vec2 q = p - vec2(1.*TEXT_SCALE.x, -1.*TEXT_SCALE.y);
         q /= TEXT_SCALE;
         q.x = (q.x - .5) / TEXT_RATIO + .5;
-        drawNumber(q, lostAmount, TEXT_COL, col);
+        drawNumber(q, lostAmount, textCol, col);
 
         glowPosition = NO_GLOW;
     } else {
@@ -404,7 +409,7 @@ void drawText(vec2 p, inout vec3 col) {
     if (char != 0.) {
         float sd = textSDF(posInCell, char);
         float blur = TEXT_BLUR / uResolution.y;
-        col = mix(TEXT_COL, col, smoothstep(-blur, +blur, sd));
+        col = mix(textCol, col, smoothstep(-blur, +blur, sd));
 
         if (glowPosition == TEXT_GLOW) {
             col += GLOW_TEXT_COL * max( 0.5 * (0.02/(0.02+abs(sd))) - 0.05, 0. ) + dither().x;

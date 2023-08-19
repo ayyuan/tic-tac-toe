@@ -103,7 +103,7 @@ void reset(float state) {
     score = NA;
 
     xPositions = oPositions = winPositions = 0;
-    
+
     animatePosition = NO_ANIMATE;
     animateTime = 0.;
 }

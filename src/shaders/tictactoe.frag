@@ -188,7 +188,7 @@ float time(int pos) {
     return 1.;
 }
 
-float drawGlowX(vec2 q) {
+float glowX(vec2 q) {
     // rotate coordinate system by 45 deg
     q = ROT45_MAT * q;
 
@@ -201,7 +201,7 @@ float drawGlowX(vec2 q) {
     return clamp(0.5*(v+h), 0., 1.);
 }
 
-float drawGlowO(vec2 q) {
+float glowO(vec2 q) {
     float sd = oSDF(q) - LINE_THICKNESS;
     const float glow = 0.01;
     float c = ( 1. - step(0., sd) ) + max( glow/(glow+abs(sd)) - 0.1, 0. );
@@ -216,6 +216,23 @@ vec3 gradient(vec2 p, vec3 col) {
                 vec3(p.y, -p.x, p.y) :
                 p.xyx;
     return mix( col-0.1, col+0.1, 0.5 + 0.5*cos(t + dir + vec3(0.,2.,4.)) );
+}
+
+// https://www.shadertoy.com/view/4djSRW
+vec2 hash23(vec3 p3) {
+    p3 = fract(p3 * vec3(.1031, .1030, .0973));
+    p3 += dot(p3, p3.yzx+33.33);
+    return fract((p3.xx+p3.yz)*p3.zy);
+}
+
+// returns info needed to perform dithering on the glowing objects
+// .x  - noise value to add to color
+// .yz - offset value to calculate the gradient()
+vec3 dither() {
+    vec2 hash = hash23( vec3(gl_FragCoord.xy, uTime) ); // [0,1]
+    vec2 offset = 0.05 * (2.*hash - 1.); // [-0.05,0.05]
+    float noise = ( dot(hash, vec2(1.)) - 0.5 ) / 255.;
+    return vec3( noise, offset );
 }
 
 void drawBoard(vec2 p, inout vec3 color) {
@@ -264,9 +281,9 @@ void drawBoard(vec2 p, inout vec3 color) {
     if (row == grow && col == gcol) {
         // draw faint glowing X or O
         if (isX) {
-            color += X_COL * 0.5 * drawGlowX(q);
+            color += X_COL * 0.5 * glowX(q) + dither().x;
         } else {
-            color += O_COL * 0.5 * drawGlowO(q);
+            color += O_COL * 0.5 * glowO(q) + dither().x;
         }
     }
     else {
@@ -277,7 +294,8 @@ void drawBoard(vec2 p, inout vec3 color) {
                 // is X part of the winning positions?
                   (xPositions & winPositions) == winPositions ) {
                 // part of the winning triple so make it glow and animated
-                color += gradient(p, X_COL+vec3(-0.15,0.1,-0.15)) * drawGlowX(q);
+                vec3 d = dither(); // dithering to prevent banding
+                color += gradient(p+d.yz, X_COL) * glowX(q) + d.x;
             } else {
                 // draw normal X
                 float sd = xSDF( q, time(pos) ) - LINE_THICKNESS;
@@ -292,7 +310,8 @@ void drawBoard(vec2 p, inout vec3 color) {
                 // is O part of the winning positions?
                   (oPositions & winPositions) == winPositions ) {
                 // part of the winning triple so make it glow and animated
-                color += gradient(p, O_COL) * drawGlowO(q);
+                vec3 d = dither(); // dithering to prevent banding
+                color += gradient(p+d.yz, O_COL) * glowO(q) + d.x;
             } else {
                 // draw normal O
                 float sd = oSDF(q) - LINE_THICKNESS;
@@ -359,7 +378,7 @@ void drawText(vec2 p, inout vec3 col) {
         // draw "Easy Mode" / "Hard Mode"
         if (uResolution.x > uResolution.y) {
             p -= -4.5 * TEXT_SCALE;
-        } else { 
+        } else {
             float center = 0.5 * (-Y_BOUND + (-0.3));
             p.x -= -4.5 * TEXT_SCALE.x;
             p.y -= center - 0.5 * TEXT_SCALE.y;
@@ -388,7 +407,7 @@ void drawText(vec2 p, inout vec3 col) {
         col = mix(TEXT_COL, col, smoothstep(-blur, +blur, sd));
 
         if (glowPosition == TEXT_GLOW) {
-            col += GLOW_TEXT_COL * max( 0.5 * (0.02/(0.02+abs(sd))) - 0.05, 0. );
+            col += GLOW_TEXT_COL * max( 0.5 * (0.02/(0.02+abs(sd))) - 0.05, 0. ) + dither().x;
         }
     }
 }

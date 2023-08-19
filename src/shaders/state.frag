@@ -179,7 +179,7 @@ void main() {
     vec2 p = vec2(0.);
     if (uResolution.x > uResolution.y) {
         p = -4.5 * TEXT_SCALE;
-    } else { 
+    } else {
         float bound  = min( 0.5 * (uResolution.y / uResolution.x), Y_BOUND_LIMIT );
         float center = 0.5 * (-bound + (-0.3));
         p.x = -4.5 * TEXT_SCALE.x;
@@ -277,7 +277,7 @@ void main() {
     } else {
         if (glowPosition != TEXT_GLOW) glowPosition = NO_GLOW;
     }
-    
+
     // show pointer cursor when gameover screen is displayed
     onHover = onHover || (score != NA && animatePosition == NO_ANIMATE);
 

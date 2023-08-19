@@ -1,11 +1,12 @@
 import gl from './gl';
 import textureSrc from './assets/font.png';
 
-const textureFont = gl.createTexture();
-if (textureFont === null) {
+const tex = gl.createTexture();
+if (tex === null) {
   throw new Error('failed to gl.createTexture()');
 }
 
+const textureFont = tex;
 // load image into texture
 await new Promise((resolve, reject) => {
   const image = new Image();

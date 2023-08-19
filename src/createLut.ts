@@ -94,7 +94,7 @@ function minimax(
     //  - choose path that wins fastest or
     //  - choose path that loses slowest
     if (score !== 0) score -= depth * Math.sign(score);
-    
+
     // updating alpha and beta
     if (player === maxPlayer) alpha = Math.max(score, alpha);
     else beta = Math.min(score, beta);
@@ -205,7 +205,7 @@ function rotationExists(board: Board, lut: Float32Array) {
 export default function createLut(width: number, height: number) {
   if (width * height < Math.pow(3, 9))
     throw new Error('dimensions too small');
-  
+
   const lut = new Float32Array( width * height );
   lut.fill(-1);
 
@@ -219,7 +219,7 @@ export default function createLut(width: number, height: number) {
 
   for (const board of gen) {
     if (rotationExists(board, lut)) continue;
-    const player = nextPlayer(board);    
+    const player = nextPlayer(board);
     lut[ encoding(board) ] = minimax( board, player, player ).move;
   }
   return lut;

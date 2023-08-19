@@ -5,11 +5,12 @@ import gl from './gl';
 const WIDTH = 140;
 const HEIGHT = 141;
 
-const textureLut = gl.createTexture();
-if (textureLut === null) {
+const tex = gl.createTexture();
+if (tex === null) {
   throw new Error('failed to gl.createTexture()');
 }
 
+const textureLut = tex;
 gl.bindTexture(gl.TEXTURE_2D, textureLut);
 
 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);

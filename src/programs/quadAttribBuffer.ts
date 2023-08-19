@@ -1,10 +1,11 @@
 import gl from '../gl';
 
-const quadAttribBuffer = gl.createBuffer();
-if (quadAttribBuffer === null) {
+const buf = gl.createBuffer();
+if (buf === null) {
   throw new Error('failed to gl.createBuffer()');
 }
 
+const quadAttribBuffer = buf;
 gl.bindBuffer(gl.ARRAY_BUFFER, quadAttribBuffer);
 gl.bufferData(
   gl.ARRAY_BUFFER,

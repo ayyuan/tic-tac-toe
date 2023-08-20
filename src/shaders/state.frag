@@ -11,7 +11,7 @@ uniform uint uFrame;
 uniform vec2 uResolution;
 uniform vec3 uMouse;
 uniform sampler2D uState;
-uniform sampler2D uLut;
+uniform lowp isampler2D uLut;
 
 in vec2 vPosition;
 
@@ -213,7 +213,7 @@ void main() {
             // encoding the board so we can query our minimax LUT texture
             int enc = encoding();
             int w = textureSize(uLut, 0).x;
-            mov = int( texelFetch(uLut, ivec2(enc % w, enc / w), 0).r );
+            mov = texelFetch(uLut, ivec2(enc % w, enc / w), 0).r;
             move(mov);
         }
 

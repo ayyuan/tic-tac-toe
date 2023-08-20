@@ -19,7 +19,7 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 gl.texStorage2D(
   gl.TEXTURE_2D,
   1,
-  gl.R32F,
+  gl.R8I,
   WIDTH,
   HEIGHT,
 );
@@ -30,9 +30,9 @@ gl.texSubImage2D(
   0,
   WIDTH,
   HEIGHT,
-  gl.RED,
-  gl.FLOAT,
-  new Float32Array(lut),
+  gl.RED_INTEGER,
+  gl.BYTE,
+  new Int8Array(lut),
 );
 
 export default textureLut;

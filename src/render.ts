@@ -57,6 +57,8 @@ const stateTexUnit = 0;
 const fontTexUnit = 1;
 const lutTexUnit = 2;
 
+canvas.classList.remove('invisible');
+
 export default function render(deltaTime: number) {
   // -- render to state fbo --
   gl.useProgram(programState)

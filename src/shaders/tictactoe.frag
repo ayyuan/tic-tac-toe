@@ -53,8 +53,6 @@ const float LINE_THICKNESS = 0.003;
 const float LINE_BLUR = 2.5;
 const float PIECE_SIZE = 0.08;
 
-float X_BOUND = 0., Y_BOUND = 0.;
-
 #include "./common.glsl"
 
 const float TEXT_BLUR = 15.;
@@ -225,7 +223,8 @@ vec2 hash23(vec3 p3) {
     return fract((p3.xx+p3.yz)*p3.zy);
 }
 
-// returns info needed to perform dithering on the glowing objects
+// returns info needed to perform dithering on the
+// glowing objects to prevent banding artifacts
 // .x  - noise value to add to color
 // .yz - offset value to calculate the gradient()
 vec3 dither() {
@@ -326,7 +325,7 @@ void drawBoard(vec2 p, inout vec3 color) {
     }
 }
 
-void drawText(vec2 p, inout vec3 col) {
+void drawText(vec2 p, float bound, inout vec3 col) {
     vec3 textCol = TEXT_COL;
     // id for each cell
     vec2 t = vec2(0.);
@@ -338,11 +337,11 @@ void drawText(vec2 p, inout vec3 col) {
         if (isYourTurn) textCol = (isX ? X_COL : O_COL) + BG_COL;
 
         if (uResolution.x > uResolution.y) {
-            float center = 0.5 * (-X_BOUND + (-0.3));
+            float center = 0.5 * (-bound + (-0.3));
             p.x -= center - 1.5 * TEXT_SCALE.x;
             p.y -= 0.3 - TEXT_SCALE.y;
         } else {
-            float center = 0.5 * (Y_BOUND + 0.3);
+            float center = 0.5 * (bound + 0.3);
             p.x -= -0.2 - 1.5 * TEXT_SCALE.x;
             p.y -= center;
         }
@@ -361,11 +360,11 @@ void drawText(vec2 p, inout vec3 col) {
         if (!isYourTurn) textCol = (isX ? X_COL : O_COL) + BG_COL;
 
         if (uResolution.x > uResolution.y) {
-            float center = 0.5 * (X_BOUND + 0.3);
+            float center = 0.5 * (bound + 0.3);
             p.x -= center - 1. * TEXT_SCALE.x;
             p.y -= 0.3 - TEXT_SCALE.y;
         } else {
-            float center = 0.5 * (Y_BOUND + 0.3);
+            float center = 0.5 * (bound + 0.3);
             p.x -= 0.2 - 1. * TEXT_SCALE.x;
             p.y -= center;
         }
@@ -384,7 +383,7 @@ void drawText(vec2 p, inout vec3 col) {
         if (uResolution.x > uResolution.y) {
             p -= -4.5 * TEXT_SCALE;
         } else {
-            float center = 0.5 * (-Y_BOUND + (-0.3));
+            float center = 0.5 * (-bound + (-0.3));
             p.x -= -4.5 * TEXT_SCALE.x;
             p.y -= center - 0.5 * TEXT_SCALE.y;
         }
@@ -480,23 +479,24 @@ void main() {
     loadState();
 
     vec2 p = 0.5 * vPosition; // remap from [-1,1] to [-0.5,0.5]
+    float bound = 0.;
     // apply aspect ratio
     if (uResolution.x > uResolution.y) {
         // if width > height y remains in range [-0.5,0.5] and x will be stretched
         float aspect = uResolution.x / uResolution.y;
         p.x *= aspect;
-        X_BOUND = min( 0.5 * aspect, X_BOUND_LIMIT );
+        bound = min( 0.5 * aspect, X_BOUND_LIMIT );
     } else {
         // else vise versa, x remains in range [-0.5,0.5] and y will be stretched
         float aspect = uResolution.y / uResolution.x;
         p.y *= aspect;
-        Y_BOUND = min( 0.5 * aspect, Y_BOUND_LIMIT );
+        bound = min( 0.5 * aspect, Y_BOUND_LIMIT );
     }
 
     vec3 color = BG_COL;
 
-    drawBoard(p, color);
-    drawText(p, color);
+    drawBoard   (p, color);
+    drawText    (p, bound, color);
     drawGameOver(p, color);
 
     outColor = vec4(color, 1.0);

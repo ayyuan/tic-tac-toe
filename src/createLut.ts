@@ -1,3 +1,6 @@
+// This file is only used to pregenerate lut.ts offline
+// to speed up page load time. No other files reference this.
+
 const _ = 10;
 const X = 20;
 const O = 30;
@@ -12,6 +15,10 @@ type BestMove = {
   move: number,
   score: number
 };
+
+console.log(
+  `new Float32Array([${Array.from(createLut(140,141)).join(',') }])`
+);
 
 function move(board: Board, player: Cell, position: number): Board {
   return board.map((cell, ndx) => ndx === position ? player : cell) as Board;
@@ -202,7 +209,7 @@ function rotationExists(board: Board, lut: Float32Array) {
   return false;
 }
 
-export default function createLut(width: number, height: number) {
+function createLut(width: number, height: number) {
   if (width * height < Math.pow(3, 9))
     throw new Error('dimensions too small');
 

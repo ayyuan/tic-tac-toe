@@ -1,9 +1,6 @@
 import gl from '../gl';
-import lut from './lut';
-
-// 140x141 size because we need to fit in 3^9 data
-const WIDTH = 140;
-const HEIGHT = 141;
+import lut from './lut.json';
+import { WIDTH, HEIGHT } from './createLut';
 
 const tex = gl.createTexture();
 if (tex === null) {
@@ -35,7 +32,7 @@ gl.texSubImage2D(
   HEIGHT,
   gl.RED,
   gl.FLOAT,
-  lut,
+  new Float32Array(lut),
 );
 
 export default textureLut;

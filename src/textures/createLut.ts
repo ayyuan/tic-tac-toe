@@ -1,5 +1,7 @@
-// This file is only used to pregenerate lut.ts offline
-// to speed up page load time. No other files reference this.
+// This file is only used to pre-generate lut.json offline to speed up page load time.
+// lut.json generated with the following command:
+// `npx vite-node --mode lut .\src\textures\createLut.ts | clip`
+// then copy and pasted into lut.json
 
 const _ = 10;
 const X = 20;
@@ -16,9 +18,16 @@ type BestMove = {
   score: number
 };
 
-console.log(
-  `new Float32Array([${Array.from(createLut(140,141)).join(',') }])`
-);
+// 140x141 size because we need to fit in 3^9 data
+const WIDTH = 140;
+const HEIGHT = 141;
+export { WIDTH, HEIGHT };
+
+if ( import.meta.env.MODE === 'lut' ) {
+  const lut = createLut(WIDTH, HEIGHT);
+  // need to do it this way or will get "... XXX more items" if just do console.log(lut)
+  console.log(`[${Array.from(lut).join(',') }]`);
+}
 
 function move(board: Board, player: Cell, position: number): Board {
   return board.map((cell, ndx) => ndx === position ? player : cell) as Board;
@@ -194,7 +203,7 @@ function rotatePos90CCW(pos: number) {
 
 // to save computation we take advantage that many
 // board configurations are just rotations of each other
-function rotationExists(board: Board, lut: Float32Array) {
+function rotationExists(board: Board, lut: number[]) {
   let rotBoard = board;
   for (let rotCnt = 1; rotCnt < 4; rotCnt++) {
     rotBoard = rotateBoard90CW(rotBoard);
@@ -209,12 +218,11 @@ function rotationExists(board: Board, lut: Float32Array) {
   return false;
 }
 
-function createLut(width: number, height: number) {
+function createLut(width: number, height: number): number[] {
   if (width * height < Math.pow(3, 9))
     throw new Error('dimensions too small');
 
-  const lut = new Float32Array( width * height );
-  lut.fill(-1);
+  const lut = Array( width * height ).fill(-1);
 
   const gen = generateBoards();
   // ideal move for an empty board should be in 1 of the 4 corners
@@ -303,8 +311,7 @@ if (import.meta.vitest) {
     const b1Enc = encoding(b1);
     const b2Enc = encoding(b2);
 
-    const lut = new Float32Array( Math.max(b1Enc, b2Enc) + 1 );
-    lut.fill(-1);
+    const lut = Array( Math.max(b1Enc, b2Enc) + 1 ).fill(-1);
     // b2 exists in LUT but b1 doesn't
     lut[b2Enc] = 8;
 

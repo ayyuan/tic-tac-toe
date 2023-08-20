@@ -1,5 +1,5 @@
-import gl from './gl';
-import textureSrc from './assets/font.png';
+import gl from '../gl';
+import textureSrc from '../assets/font.png';
 
 const tex = gl.createTexture();
 if (tex === null) {

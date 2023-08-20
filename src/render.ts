@@ -1,9 +1,9 @@
-import textureFont from './textureFont';
+import textureFont from './textures/textureFont';
 import gl from './gl';
 import programState from './programs/programState';
 import programTicTacToe from './programs/programTicTacToe';
 import state from './state';
-import textureLut from './textureLut';
+import textureLut from './textures/textureLut';
 
 // uniform locations
 const tictactoeLocations = {

@@ -1,4 +1,4 @@
-import gl from './gl';
+import gl from '../gl';
 import lut from './lut';
 
 // 140x141 size because we need to fit in 3^9 data

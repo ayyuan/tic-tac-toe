@@ -19,6 +19,13 @@ const float TWEEN_AI_TO_TIE  = 7.;
 const float WIN              = 8.;
 const float TIE              = 9.;
 const float LOSE             = 10.;
+const float FADE_TO_WIN      = 11.;
+const float FADE_TO_LOSE     = 12.;
+const float FADE_TO_TIE      = 13.;
+const float FADE_OUT_WIN     = 14.;
+const float FADE_OUT_LOSE    = 15.;
+const float FADE_OUT_TIE     = 16.;
+const float RESET            = 17.;
 
 // states for reset()
 const float INIT        = 0.;

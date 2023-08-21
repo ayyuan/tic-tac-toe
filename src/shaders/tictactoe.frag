@@ -234,7 +234,7 @@ vec3 dither() {
     return vec3( noise, offset );
 }
 
-void drawBoard(vec2 p, inout vec3 color) {
+void drawBoard(vec2 p, out vec3 emptyBoard, inout vec3 color) {
     // drawing tic tac toe board
     float lineBlur = LINE_BLUR / uResolution.y;
     // left vertical line
@@ -262,6 +262,8 @@ void drawBoard(vec2 p, inout vec3 color) {
     color += vec3(0, 1, 0) * smoothstep(0.001, 0., l);
 #endif
 
+    emptyBoard = color;
+
     // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3
     vec2 id = (p + 0.3) * 5.;
     // compute id for every cell
@@ -275,9 +277,7 @@ void drawBoard(vec2 p, inout vec3 color) {
 
     // finite domain repetition
     vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
-    int grow = glowPosition / 3;
-    int gcol = glowPosition - 3 * grow;
-    if (row == grow && col == gcol) {
+    if (glowPosition != NO_GLOW && glowPosition == pos) {
         // draw faint glowing X or O
         if (isX) {
             color += X_COL * 0.5 * glowX(q) + dither().x;
@@ -328,6 +328,7 @@ void drawBoard(vec2 p, inout vec3 color) {
 }
 
 void drawText(vec2 p, float bound, inout vec3 col) {
+    bool shouldGlow = false;
     vec3 textCol = TEXT_COL;
     // id for each cell
     vec2 t = vec2(0.);
@@ -360,8 +361,6 @@ void drawText(vec2 p, float bound, inout vec3 col) {
         q /= TEXT_SCALE;
         q.x = (q.x - .5) / TEXT_RATIO + .5;
         drawNumber(q, wonAmount, textCol, col);
-
-        glowPosition = NO_GLOW;
     } else if (p.x > 0. && p.y > 0.) {
         // draw "AI"
         if (state == AI_TURN) textCol = (isX ? X_COL : O_COL) + BG_COL;
@@ -388,8 +387,6 @@ void drawText(vec2 p, float bound, inout vec3 col) {
         q /= TEXT_SCALE;
         q.x = (q.x - .5) / TEXT_RATIO + .5;
         drawNumber(q, lostAmount, textCol, col);
-
-        glowPosition = NO_GLOW;
     } else {
         // draw "Easy Mode" / "Hard Mode"
         if (uResolution.x > uResolution.y) {
@@ -407,6 +404,7 @@ void drawText(vec2 p, float bound, inout vec3 col) {
             v = t.y == 0. ? ( t.x < 4. ? 1685217608u : ( t.x < 8. ? 1685015840u : 101u ) ) : v;
             v = t.x >= 0. && t.x < 12. ? v : 0u;
         }
+        shouldGlow = glowPosition == TEXT_GLOW;
     }
 
     // extract character
@@ -422,15 +420,21 @@ void drawText(vec2 p, float bound, inout vec3 col) {
         float blur = TEXT_BLUR / uResolution.y;
         col = mix(textCol, col, smoothstep(-blur, +blur, sd));
 
-        if (glowPosition == TEXT_GLOW) {
+        if (shouldGlow) {
             col += GLOW_TEXT_COL * max( 0.5 * (0.02/(0.02+abs(sd))) - 0.05, 0. ) + dither().x;
         }
     }
 }
 
-void drawGameOver(vec2 p, inout vec3 color) {
+void drawGameOver(vec2 p, vec3 emptyBoard, inout vec3 color) {
     // draw game over overlay
-    if (!isGameOver()) return;
+    bool isFadingIn  = state == FADE_TO_WIN  || state == FADE_TO_LOSE  || state == FADE_TO_TIE;
+    bool isFadingOut = state == FADE_OUT_WIN || state == FADE_OUT_LOSE || state == FADE_OUT_TIE;
+    if (!isGameOver() && !isFadingIn && !isFadingOut) return;
+
+    vec3 col = color;
+    // dim background
+    col *= 0.4;
 
     vec3 textCol = vec3(1.);
     // id for each cell
@@ -438,33 +442,27 @@ void drawGameOver(vec2 p, inout vec3 color) {
     // contains encoding for text
     // encoded with https://github.com/knarkowicz/ShadertoyText
     uint v = 0u;
-    if (state == LOSE) {
+    if (state == LOSE || state == FADE_TO_LOSE || state == FADE_OUT_LOSE) {
         // draw "LOSE" text
         textCol = LOSE_TEXT_COL;
-        // dim background
-        color *= 0.4;
 
         p.x -= -2. * GO_TEXT_SCALE.x;
         p.y -= -0.5 * GO_TEXT_SCALE.y;
         t = floor(p / GO_TEXT_SCALE + 1e-6);
         v = t.y == 0. ? 1163087692u : v;
         v = t.x >= 0. && t.x < 4. ? v : 0u;
-    } else if (state == WIN) {
+    } else if (state == WIN || state == FADE_TO_WIN || state == FADE_OUT_WIN) {
         // draw "WIN" text
         textCol = WIN_TEXT_COL;
-        // dim background
-        color *= 0.4;
 
         p.x -= -1.5 * GO_TEXT_SCALE.x;
         p.y -= -0.5 * GO_TEXT_SCALE.y;
         t = floor(p / GO_TEXT_SCALE + 1e-6);
         v = t.y == 0. ? 5130583u : v;
         v = t.x >= 0. && t.x < 4. ? v : 0u;
-    } else if (state == TIE) {
+    } else if (state == TIE || state == FADE_TO_TIE || state == FADE_OUT_TIE) {
         // draw "TIE" text
         textCol = TIE_TEXT_COL;
-        // dim background
-        color *= 0.4;
 
         p.x -= -1.5 * GO_TEXT_SCALE.x;
         p.y -= -0.5 * GO_TEXT_SCALE.y;
@@ -483,8 +481,12 @@ void drawGameOver(vec2 p, inout vec3 color) {
     if (char != 0.) {
         float sd = gaussianTextSDF(posInCell, char);
         float blur = 0.25 * TEXT_BLUR / uResolution.y;
-        color = mix(textCol, color, smoothstep(-blur, +blur, sd));
+        col = mix(textCol, col, smoothstep(-blur, +blur, sd));
     }
+
+    float tt = clamp( animateTime/ANIMATE_DURATION, 0., 1. );
+    color = isFadingIn  ? mix( color, col, tt ) :
+            isFadingOut ? mix( col, emptyBoard, tt ) : col;
 }
 
 void main() {
@@ -506,10 +508,11 @@ void main() {
     }
 
     vec3 color = BG_COL;
+    vec3 emptyBoard;
 
-    drawBoard   (p, color);
     drawText    (p, bound, color);
-    drawGameOver(p, color);
+    drawBoard   (p, /*out*/ emptyBoard, color);
+    drawGameOver(p, emptyBoard, color);
 
     outColor = vec4(color, 1.0);
 }

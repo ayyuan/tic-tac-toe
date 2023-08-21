@@ -175,13 +175,25 @@ float tween() {
         animateTime = 0.;
 
         if (state == TWEEN_YOU_TO_WIN) {
-            return WIN;
+            return FADE_TO_WIN;
         }
         if (state == TWEEN_AI_TO_LOSE) {
-            return LOSE;
+            return FADE_TO_LOSE;
         }
         if (state == TWEEN_YOU_TO_TIE || state == TWEEN_AI_TO_TIE) {
+            return FADE_TO_TIE;
+        }
+        if (state == FADE_TO_WIN) {
+            return WIN;
+        }
+        if (state == FADE_TO_LOSE) {
+            return LOSE;
+        }
+        if (state == FADE_TO_TIE) {
             return TIE;
+        }
+        if (state == FADE_OUT_WIN || state == FADE_OUT_LOSE || state == FADE_OUT_TIE) {
+            return RESET;
         }
         return state == TWEEN_AI_TO_YOU ? YOUR_TURN : AI_TURN;
     }
@@ -245,8 +257,18 @@ void updateState(vec2 m) {
                state == TWEEN_YOU_TO_WIN ||
                state == TWEEN_AI_TO_LOSE ||
                state == TWEEN_YOU_TO_TIE ||
-               state == TWEEN_AI_TO_TIE) {
+               state == TWEEN_AI_TO_TIE  ||
+               state == FADE_TO_WIN      ||
+               state == FADE_TO_LOSE     ||
+               state == FADE_TO_TIE      ||
+               state == FADE_OUT_WIN     ||
+               state == FADE_OUT_LOSE    ||
+               state == FADE_OUT_TIE) {
         state = tween();
+        if (state == RESET) {
+            // game is complete, so reset board
+            reset(NEW_ROUND);
+        }
     } else if (state == AI_TURN) {
         // AI chooses move
 
@@ -271,8 +293,10 @@ void updateState(vec2 m) {
 
         // no mouse click
         if (uMouse.z <= 0.) return;
-        // game is complete, so reset board
-        reset(NEW_ROUND);
+
+        state = state == WIN ? FADE_OUT_WIN :
+                state == TIE ? FADE_OUT_TIE :
+                               FADE_OUT_LOSE;
     }
 }
 

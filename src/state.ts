@@ -1,8 +1,8 @@
 import gl from './gl';
 import programInitState from './programs/programInitState';
 
-// 14 global variables in common.glsl
-const WIDTH = 14;
+// 13 global variables in common.glsl
+const WIDTH = 13;
 const HEIGHT = 1;
 
 // texture

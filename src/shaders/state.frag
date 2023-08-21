@@ -96,22 +96,23 @@ bool hasWon(int pos, int mov) {
             hasWonAt(pos, WIN_0TO8)) != 0;
 }
 
-void updateScore(int mov) {
+float evalScore(int mov) {
     // just check all possible cases, nothing fancy (brute forcing)
     if ( hasWon(xPositions, mov) || hasWon(oPositions, mov) ) {
-        if (isYourTurn) {
+        if (state == AI_TURN) {
             // last move made is by AI so only possible status is LOSE
-            score = LOSE;
             lostAmount += 1.0;
+            return TWEEN_AI_TO_LOSE;
         } else {
-            score = WIN;
             wonAmount += 1.0;
+            return TWEEN_YOU_TO_WIN;
         }
     }
     // check for tie
     else if ( (xPositions | oPositions) == TIE_POS ) {
-        score = TIE;
+        return state == AI_TURN ? TWEEN_AI_TO_TIE : TWEEN_YOU_TO_TIE;
     }
+    return state == YOUR_TURN ? TWEEN_YOU_TO_AI : TWEEN_AI_TO_YOU;
 }
 
 void move(int pos) {
@@ -119,7 +120,6 @@ void move(int pos) {
     isX ? (xPositions |= shiftPos) : (oPositions |= shiftPos);
 
     isX = !isX;
-    isYourTurn = !isYourTurn;
     animatePosition = pos;
 }
 
@@ -165,16 +165,30 @@ int randMove(uint seed) {
     return mov;
 }
 
-void main() {
-    loadState();
+float tween() {
+    // animation in progress
+    animateTime += uTimeDelta;
 
-    // mouse position normalized [-0.5,0.5]
-    vec2 mouse = uMouse.xy / uResolution.xy - 0.5;
-    // aspect correction
-    uResolution.x > uResolution.y ?
-        (mouse.x *= uResolution.x / uResolution.y) :
-        (mouse.y *= uResolution.y / uResolution.x);
+    if (animateTime > ANIMATE_DURATION) {
+        // animation complete
+        animatePosition = NO_ANIMATE;
+        animateTime = 0.;
 
+        if (state == TWEEN_YOU_TO_WIN) {
+            return WIN;
+        }
+        if (state == TWEEN_AI_TO_LOSE) {
+            return LOSE;
+        }
+        if (state == TWEEN_YOU_TO_TIE || state == TWEEN_AI_TO_TIE) {
+            return TIE;
+        }
+        return state == TWEEN_AI_TO_YOU ? YOUR_TURN : AI_TURN;
+    }
+    return state;
+}
+
+bool isMouseOnMode(vec2 mouse) {
     // setting up "Hard/Easy Mode" text coordinates
     vec2 p = vec2(0.);
     if (uResolution.x > uResolution.y) {
@@ -187,7 +201,11 @@ void main() {
     }
     // id for each letter in "Hard/Easy Mode" text
     vec2 t = floor( (mouse - p) / TEXT_SCALE + 1e-6 );
+    // hitbox for hard/easy mode text: t.x range [0,8] t.y == 0
+    return -0.1 < t.x && t.x < 8.1 && -0.1 < t.y && t.y < 0.1;
+}
 
+int evalMousePosition(vec2 mouse) {
     // -- computing which cell our mouse is currently on
     // map grid lines from -0.3, -0.1, 0.1, 0.3 -> 0, 1, 2, 3
     vec2 id = (mouse + 0.3) * 5.;
@@ -195,11 +213,41 @@ void main() {
     id = floor(id);
     // flip it so the origin is at top left of board instead of bot left
     id.y = 2. - id.y;
-    // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
-    int row = int( id.y + 1e-6 );
-    int col = int( id.x + 1e-6 );
+    // id must be in domain [0,2]
+    if ( -0.1 < id.x && id.x < 2.1 && -0.1 < id.y && id.y < 2.1 ) {
+        // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
+        int row = int( id.y + 1e-6 );
+        int col = int( id.x + 1e-6 );
+        return 3 * row + col;
+    }
+    return INVALID_POS;
+}
 
-    if (!isYourTurn && score == NA && animatePosition == NO_ANIMATE) {
+void updateState(vec2 m) {
+    if (uMouse.z > 0. && isMouseOnMode(m)) {
+        // clicked on "Easy/Hard Mode" text
+        // toggle between hard/easy mode and resets board
+        reset(TOGGLE_MODE);
+        return;
+    }
+
+    if (state == YOUR_TURN) {
+        // no mouse click
+        if (uMouse.z <= 0.) return;
+
+        int pos = evalMousePosition(m);
+        if (pos != INVALID_POS && isFreeAt(pos)) {
+            move(pos);
+            state = evalScore(pos);
+        }
+    } else if (state == TWEEN_YOU_TO_AI  ||
+               state == TWEEN_AI_TO_YOU  ||
+               state == TWEEN_YOU_TO_WIN ||
+               state == TWEEN_AI_TO_LOSE ||
+               state == TWEEN_YOU_TO_TIE ||
+               state == TWEEN_AI_TO_TIE) {
+        state = tween();
+    } else if (state == AI_TURN) {
         // AI chooses move
 
         int mov = INVALID_POS;
@@ -217,69 +265,54 @@ void main() {
             move(mov);
         }
 
-        updateScore(mov);
+        state = evalScore(mov);
+    } else if (state == WIN || state == LOSE || state == TIE) {
+        //stay here until we click, then goes to YOUR_TURN or AI_TURN
+
+        // no mouse click
+        if (uMouse.z <= 0.) return;
+        // game is complete, so reset board
+        reset(NEW_ROUND);
     }
-    // uMouse.z > 0. means onMouseUp
-    else if (uMouse.z > 0.) {
-        if (score != NA && animatePosition == NO_ANIMATE) {
-            // game is complete, so reset board
-            reset(NEW_ROUND);
-        }
-        else if (-0.1 < t.x && t.x < 8.1 &&
-                 -0.1 < t.y && t.y < 0.1) {
-            // hitbox for hard/easy mode text
-            // toggle between hard/easy mode and resets board
-            reset(TOGGLE_MODE);
-        }
-        else if (isYourTurn && animatePosition == NO_ANIMATE) {
-            // human has moved
+}
 
-            int mov = rcToPos(row, col);
-            // id must be in domain [0,2]
-            if ( -0.1 < id.x && id.x < 2.1 && -0.1 < id.y && id.y < 2.1 && isFreeAt(mov) ) {
-                move( mov );
-            }
-
-            updateScore(mov);
-        }
-    }
-    else if (animatePosition != NO_ANIMATE) {
-        // animation in progress
-        animateTime += uTimeDelta;
-
-        if (animateTime > ANIMATE_DURATION) {
-            // animation complete
-            animatePosition = NO_ANIMATE;
-            animateTime = 0.;
-        }
-    }
-
+void updateMouse(vec2 m) {
     // -- setting onHover and glowPosition
-    // hitbox for hard/easy mode text: t.x range [0,8] t.y == 0
-    if (-0.1 < t.x && t.x < 8.1 && -0.1 < t.y && t.y < 0.1 &&
-        score == NA) {
-        // show pointer cursor when hover over mode text
-        onHover = true;
+
+    // hovering over game over screen
+    if ( onHover = isGameOver() ) return;
+
+    // hovering over "Easy/Hard Mode" text
+    if ( onHover = isMouseOnMode(m) ) {
         glowPosition = TEXT_GLOW;
+        return;
     } else {
-        onHover = false;
         glowPosition = NO_GLOW;
     }
 
-    // id must be in domain [0,2]
-    if (-0.1 < id.x && id.x < 2.1 && -0.1 < id.y && id.y < 2.1 &&
-        isFreeAt( rcToPos(row,col) ) &&
-        score == NA &&
-        isYourTurn && animatePosition == NO_ANIMATE) {
-        // show pointer cursor when hover over cell
-        onHover = true;
-        glowPosition = rcToPos(row, col);
+    // hovering over free cell
+    int pos = evalMousePosition(m);
+    onHover = pos != INVALID_POS && state == YOUR_TURN && isFreeAt(pos);
+    if ( onHover ) {
+        glowPosition = pos;
+        return;
     } else {
         if (glowPosition != TEXT_GLOW) glowPosition = NO_GLOW;
     }
+}
 
-    // show pointer cursor when gameover screen is displayed
-    onHover = onHover || (score != NA && animatePosition == NO_ANIMATE);
+void main() {
+    loadState();
+
+    // mouse position normalized [-0.5,0.5]
+    vec2 mouse = uMouse.xy / uResolution.xy - 0.5;
+    // aspect correction
+    uResolution.x > uResolution.y ?
+        (mouse.x *= uResolution.x / uResolution.y) :
+        (mouse.y *= uResolution.y / uResolution.x);
+
+    updateState(mouse);
+    updateMouse(mouse);
 
     storeState(outColor);
 }

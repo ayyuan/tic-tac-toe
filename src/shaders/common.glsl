@@ -7,11 +7,18 @@
   https://www.shadertoy.com/view/Dsjfzy
 */
 
-// score states
-const float NA          = -99.;
-const float WIN         = 1.;
-const float TIE         = 0.;
-const float LOSE        = -1.;
+// states
+const float YOUR_TURN        = 0.;
+const float AI_TURN          = 1.;
+const float TWEEN_YOU_TO_AI  = 2.;
+const float TWEEN_AI_TO_YOU  = 3.;
+const float TWEEN_YOU_TO_WIN = 4.;
+const float TWEEN_AI_TO_LOSE = 5.;
+const float TWEEN_YOU_TO_TIE = 6.;
+const float TWEEN_AI_TO_TIE  = 7.;
+const float WIN              = 8.;
+const float TIE              = 9.;
+const float LOSE             = 10.;
 
 // states for reset()
 const float INIT        = 0.;
@@ -57,11 +64,10 @@ const float Y_BOUND_LIMIT = 0.75;
 #define STATE              \
     BOOL(onHover)          \
     INT(glowPosition)      \
-    BOOL(isYourTurn)       \
     BOOL(isX)              \
-    BOOL(youStartPrevGame) \
+    FLOAT(prevGameStarter) \
     BOOL(isEasyMode)       \
-    FLOAT(score)           \
+    FLOAT(state)           \
     FLOAT(wonAmount)       \
     FLOAT(lostAmount)      \
     INT(animatePosition)   \
@@ -79,33 +85,32 @@ STATE
 #undef INT
 #undef FLOAT
 
-void reset(float state) {
-    if (state == NEW_ROUND) {
-        youStartPrevGame = !youStartPrevGame;
-        isYourTurn = youStartPrevGame;
-    } else {
-        isYourTurn = youStartPrevGame = true;
-    }
-
-    if (state == TOGGLE_MODE) {
+void reset(float s) {
+    if (s == NEW_ROUND) {
+        state = prevGameStarter == YOUR_TURN ? AI_TURN : YOUR_TURN;
+        prevGameStarter = state;
+    } else if (s == TOGGLE_MODE) {
+        state = prevGameStarter = YOUR_TURN;
         isEasyMode = !isEasyMode;
-    } else if (state == INIT) {
+        wonAmount = lostAmount = 0.;
+    } else if (s == INIT) {
+        state = prevGameStarter = YOUR_TURN;
         isEasyMode = true;
-    }
-
-    if (state == INIT || state == TOGGLE_MODE) {
         wonAmount = lostAmount = 0.;
     }
 
     onHover = false;
     glowPosition = NO_GLOW;
     isX = true;
-    score = NA;
 
     xPositions = oPositions = winPositions = 0;
 
     animatePosition = NO_ANIMATE;
     animateTime = 0.;
+}
+
+bool isGameOver() {
+    return state == WIN || state == LOSE || state == TIE;
 }
 
 bool containsXAt(int pos) {
@@ -114,10 +119,6 @@ bool containsXAt(int pos) {
 
 bool containsOAt(int pos) {
     return ((oPositions >> pos) & 1) == 1;
-}
-
-int rcToPos(int row, int col) {
-    return 3 * row + col;
 }
 
 // Set the global variables to their appropriate values

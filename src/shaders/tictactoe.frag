@@ -271,7 +271,7 @@ void drawBoard(vec2 p, inout vec3 color) {
     // not sure if 1e-6 needed but always feels safer doing it to prevent float inprecision
     int row = int( id.y + 1e-6 );
     int col = int( id.x + 1e-6 );
-    int pos = rcToPos(row, col);
+    int pos = 3 * row + col;
 
     // finite domain repetition
     vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
@@ -288,7 +288,8 @@ void drawBoard(vec2 p, inout vec3 color) {
     else {
         if ( containsXAt(pos) ) {
             // draw X
-            if (// is pos part of the winning positions?
+            if (   isGameOver() &&
+                // is pos part of the winning positions?
                  ((winPositions >> pos) & 1) == 1 &&
                 // is X part of the winning positions?
                   (xPositions & winPositions) == winPositions ) {
@@ -299,12 +300,13 @@ void drawBoard(vec2 p, inout vec3 color) {
                 // draw normal X
                 float sd = xSDF( q, time(pos) ) - LINE_THICKNESS;
                 vec3 c = X_COL * smoothstep(lineBlur, 0., sd);
-                color += score != NA ? 0.5*c : c;
+                color += isGameOver() ? 0.5*c : c;
             }
         }
         else if ( containsOAt(pos) ) {
             // draw O
-            if (// is pos part of the winning positions?
+            if (   isGameOver() &&
+                // is pos part of the winning positions?
                  ((winPositions >> pos) & 1) == 1 &&
                 // is O part of the winning positions?
                   (oPositions & winPositions) == winPositions ) {
@@ -319,7 +321,7 @@ void drawBoard(vec2 p, inout vec3 color) {
                 // animation mask
                 float mask = step( an, t );
                 vec3 c = O_COL * smoothstep(lineBlur, 0., sd) * mask;
-                color += score != NA ? 0.5*c : c;
+                color += isGameOver() ? 0.5*c : c;
             }
         }
     }
@@ -334,7 +336,12 @@ void drawText(vec2 p, float bound, inout vec3 col) {
     uint v = 0u;
     if (p.x < 0. && p.y > 0.) {
         // draw "You"
-        if (isYourTurn) textCol = (isX ? X_COL : O_COL) + BG_COL;
+        if (state == YOUR_TURN) textCol = (isX ? X_COL : O_COL) + BG_COL;
+        if (state == TWEEN_YOU_TO_AI  ||
+            state == TWEEN_YOU_TO_WIN ||
+            state == TWEEN_YOU_TO_TIE) {
+            textCol = (isX ? O_COL : X_COL) + BG_COL;
+        }
 
         if (uResolution.x > uResolution.y) {
             float center = 0.5 * (-bound + (-0.3));
@@ -357,7 +364,12 @@ void drawText(vec2 p, float bound, inout vec3 col) {
         glowPosition = NO_GLOW;
     } else if (p.x > 0. && p.y > 0.) {
         // draw "AI"
-        if (!isYourTurn) textCol = (isX ? X_COL : O_COL) + BG_COL;
+        if (state == AI_TURN) textCol = (isX ? X_COL : O_COL) + BG_COL;
+        if (state == TWEEN_AI_TO_YOU  ||
+            state == TWEEN_AI_TO_LOSE ||
+            state == TWEEN_AI_TO_TIE) {
+            textCol = (isX ? O_COL : X_COL) + BG_COL;
+        }
 
         if (uResolution.x > uResolution.y) {
             float center = 0.5 * (bound + 0.3);
@@ -418,7 +430,7 @@ void drawText(vec2 p, float bound, inout vec3 col) {
 
 void drawGameOver(vec2 p, inout vec3 color) {
     // draw game over overlay
-    if (animatePosition != NO_ANIMATE || score == NA) return;
+    if (!isGameOver()) return;
 
     vec3 textCol = vec3(1.);
     // id for each cell
@@ -426,7 +438,7 @@ void drawGameOver(vec2 p, inout vec3 color) {
     // contains encoding for text
     // encoded with https://github.com/knarkowicz/ShadertoyText
     uint v = 0u;
-    if (score == LOSE) {
+    if (state == LOSE) {
         // draw "LOSE" text
         textCol = LOSE_TEXT_COL;
         // dim background
@@ -437,7 +449,7 @@ void drawGameOver(vec2 p, inout vec3 color) {
         t = floor(p / GO_TEXT_SCALE + 1e-6);
         v = t.y == 0. ? 1163087692u : v;
         v = t.x >= 0. && t.x < 4. ? v : 0u;
-    } else if (score == WIN) {
+    } else if (state == WIN) {
         // draw "WIN" text
         textCol = WIN_TEXT_COL;
         // dim background
@@ -448,7 +460,7 @@ void drawGameOver(vec2 p, inout vec3 color) {
         t = floor(p / GO_TEXT_SCALE + 1e-6);
         v = t.y == 0. ? 5130583u : v;
         v = t.x >= 0. && t.x < 4. ? v : 0u;
-    } else if (score == TIE) {
+    } else if (state == TIE) {
         // draw "TIE" text
         textCol = TIE_TEXT_COL;
         // dim background

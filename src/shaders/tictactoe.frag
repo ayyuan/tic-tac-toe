@@ -433,8 +433,10 @@ void drawGameOver(vec2 p, vec3 emptyBoard, inout vec3 color) {
     if (!isGameOver() && !isFadingIn && !isFadingOut) return;
 
     vec3 col = color;
-    // dim background
-    col *= 0.4;
+
+    vec2 q = 0.5*vPosition + 0.5; // remap [-1,1] -> [0,1]
+    // dim background, apply vignette
+    col *= 0.5 * pow( 24.*q.x*(1.-q.x)*q.y*(1.-q.y), 0.4 );
 
     vec3 textCol = vec3(1.);
     // id for each cell
@@ -487,6 +489,8 @@ void drawGameOver(vec2 p, vec3 emptyBoard, inout vec3 color) {
     float tt = clamp( animateTime/ANIMATE_DURATION, 0., 1. );
     color = isFadingIn  ? mix( color, col, tt ) :
             isFadingOut ? mix( col, emptyBoard, tt ) : col;
+    // vignette effect causes banding without this
+    color += dither().x;
 }
 
 void main() {

@@ -87,7 +87,7 @@ export default function render(deltaTime: number) {
   const ndx = 1 - state.lastRenderIndex;
   gl.bindFramebuffer(gl.FRAMEBUFFER, state.targets[ndx]);
   gl.viewport(0, 0, state.resolution.width, state.resolution.height);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
   // swapping fbos and textures
   state.lastRenderIndex = ndx;
 
@@ -109,7 +109,7 @@ export default function render(deltaTime: number) {
   // render
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#use_non-blocking_async_data_readback

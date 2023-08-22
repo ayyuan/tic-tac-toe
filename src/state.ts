@@ -76,5 +76,5 @@ function initState(fb: WebGLFramebuffer) {
   // render
   gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
   gl.viewport(0, 0, WIDTH, HEIGHT);
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
 }

@@ -45,7 +45,7 @@ canvas.addEventListener('pointerup', (ev) => {
     // 2nd timeout is needed to check again for the gameover screen
     setTimeout(() => {
       setCursorStyle();
-    }, 300);
+    }, 600);
   }, 300);
 });
 

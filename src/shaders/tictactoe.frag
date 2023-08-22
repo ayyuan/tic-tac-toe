@@ -186,24 +186,8 @@ float time(int pos) {
     return 1.;
 }
 
-float glowX(vec2 q) {
-    // rotate coordinate system by 45 deg
-    q = ROT45_MAT * q;
-
-    float vertical = lineSDF(q, vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE) ) - LINE_THICKNESS;
-    float horizontal = lineSDF(q, vec2(-PIECE_SIZE, 0.), vec2(PIECE_SIZE, 0.) ) - LINE_THICKNESS;
-
-    const float glow = 0.01;
-    float v = ( 1. - step(0., vertical) )   + max( glow/(glow+abs(vertical)) - 0.1, 0. )  ;
-    float h = ( 1. - step(0., horizontal) ) + max( glow/(glow+abs(horizontal)) - 0.1, 0. );
-    return clamp(0.5*(v+h), 0., 1.);
-}
-
-float glowO(vec2 q) {
-    float sd = oSDF(q) - LINE_THICKNESS;
-    const float glow = 0.01;
-    float c = ( 1. - step(0., sd) ) + max( glow/(glow+abs(sd)) - 0.1, 0. );
-    return clamp(c, 0., 1.);
+float fadeTime() {
+    return clamp(animateTime/ANIMATE_DURATION, 0., 1.);
 }
 
 vec3 gradient(vec2 p, vec3 col) {
@@ -232,6 +216,14 @@ vec3 dither() {
     vec2 offset = 0.05 * (2.*hash - 1.); // [-0.05,0.05]
     float noise = ( dot(hash, vec2(1.)) - 0.5 ) / 255.;
     return vec3( noise, offset );
+}
+
+bool isFadingIn() {
+    return state == FADE_TO_WIN  || state == FADE_TO_LOSE  || state == FADE_TO_TIE;
+}
+
+bool isFadingOut() {
+    return state == FADE_OUT_WIN || state == FADE_OUT_LOSE || state == FADE_OUT_TIE;
 }
 
 void drawBoard(vec2 p, out vec3 emptyBoard, inout vec3 color) {
@@ -275,54 +267,90 @@ void drawBoard(vec2 p, out vec3 emptyBoard, inout vec3 color) {
     int col = int( id.x + 1e-6 );
     int pos = 3 * row + col;
 
-    // finite domain repetition
-    vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
-    if (glowPosition != NO_GLOW && glowPosition == pos) {
-        // draw faint glowing X or O
-        if (isX) {
-            color += X_COL * 0.5 * glowX(q) + dither().x;
+    bool hasFaintGlow = glowPosition != NO_GLOW && glowPosition == pos;
+    if ( containsXAt(pos) || (isX && hasFaintGlow) ) {
+        // -- drawing X
+        // finite domain repetition
+        vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
+
+        if (  hasFaintGlow ||
+            ((isFadingIn() || isFadingOut() || isGameOver()) &&
+            // is pos part of the winning positions?
+            ((winPositions >> pos) & 1) == 1 &&
+            // is X part of the winning positions?
+            (xPositions & winPositions) == winPositions) ) {
+            // draw glowing X
+            q = ROT45_MAT * q;
+
+            float vertical = lineSDF(q, vec2(0., PIECE_SIZE), vec2(0., -PIECE_SIZE) ) - LINE_THICKNESS;
+            float horizontal = lineSDF(q, vec2(-PIECE_SIZE, 0.), vec2(PIECE_SIZE, 0.) ) - LINE_THICKNESS;
+
+            const float glow = 0.01;
+            float v = ( 1. - step(0., vertical) )   + max( glow/(glow+abs(vertical)) - 0.1, 0. )  ;
+            float h = ( 1. - step(0., horizontal) ) + max( glow/(glow+abs(horizontal)) - 0.1, 0. );
+            float g = clamp(0.5*(v+h), 0., 1.);
+            vec3 d = dither(); // dithering to prevent banding
+            if (hasFaintGlow) {
+                // onMouseHover draw faint glowing X
+                color += X_COL * 0.5 * g + d.x;
+            } else {
+                vec3 col = color + gradient(p+d.yz, X_COL) * g + d.x;
+                if (isFadingIn()) {
+                    // animation to glowing X for gameover screen
+                    float sd = min(vertical, horizontal);
+                    vec3 c = X_COL * smoothstep(lineBlur, 0., sd);
+                    color = mix( color+c, col, fadeTime() );
+                } else {
+                    // glowing X
+                    color = col;
+                }
+            }
         } else {
-            color += O_COL * 0.5 * glowO(q) + dither().x;
+            // draw normal X
+            float sd = xSDF( q, time(pos) ) - LINE_THICKNESS;
+            vec3 c = X_COL * smoothstep(lineBlur, 0., sd);
+            color += c;
         }
     }
-    else {
-        if ( containsXAt(pos) ) {
-            // draw X
-            if (   isGameOver() &&
-                // is pos part of the winning positions?
-                 ((winPositions >> pos) & 1) == 1 &&
-                // is X part of the winning positions?
-                  (xPositions & winPositions) == winPositions ) {
-                // part of the winning triple so make it glow and animated
-                vec3 d = dither(); // dithering to prevent banding
-                color += gradient(p+d.yz, X_COL) * glowX(q) + d.x;
+    else if ( containsOAt(pos) || hasFaintGlow ) {
+        // -- drawing O
+        // finite domain repetition
+        vec2 q = p - 0.2 * clamp( round(p/0.2), -1., 1. );
+
+        float sd = oSDF(q) - LINE_THICKNESS;
+        if (  hasFaintGlow ||
+            ((isFadingIn() || isFadingOut() || isGameOver()) &&
+            // is pos part of the winning positions?
+            ((winPositions >> pos) & 1) == 1 &&
+            // is O part of the winning positions?
+            (oPositions & winPositions) == winPositions) ) {
+            // draw glowing O
+            const float glow = 0.01;
+            float c = ( 1. - step(0., sd) ) + max( glow/(glow+abs(sd)) - 0.1, 0. );
+            float g = clamp(c, 0., 1.);
+            vec3 d = dither(); // dithering to prevent banding
+            if (hasFaintGlow) {
+                // onMouseHover draw faint glowing O
+                color += O_COL * 0.5 * g + d.x;
             } else {
-                // draw normal X
-                float sd = xSDF( q, time(pos) ) - LINE_THICKNESS;
-                vec3 c = X_COL * smoothstep(lineBlur, 0., sd);
-                color += isGameOver() ? 0.5*c : c;
+                vec3 col = color + gradient(p+d.yz, O_COL) * g + d.x;
+                if (isFadingIn()) {
+                    // animation to glowing O for gameover screen
+                    vec3 c = O_COL * smoothstep(lineBlur, 0., sd);
+                    color = mix( color+c, col, fadeTime() );
+                } else {
+                    // glowing O
+                    color = col;
+                }
             }
-        }
-        else if ( containsOAt(pos) ) {
-            // draw O
-            if (   isGameOver() &&
-                // is pos part of the winning positions?
-                 ((winPositions >> pos) & 1) == 1 &&
-                // is O part of the winning positions?
-                  (oPositions & winPositions) == winPositions ) {
-                // part of the winning triple so make it glow and animated
-                vec3 d = dither(); // dithering to prevent banding
-                color += gradient(p+d.yz, O_COL) * glowO(q) + d.x;
-            } else {
-                // draw normal O
-                float sd = oSDF(q) - LINE_THICKNESS;
-                float t = time(pos);
-                float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
-                // animation mask
-                float mask = step( an, t );
-                vec3 c = O_COL * smoothstep(lineBlur, 0., sd) * mask;
-                color += isGameOver() ? 0.5*c : c;
-            }
+        } else {
+            // draw normal O
+            float t = time(pos);
+            float an = (atan(q.x,-q.y) + PI) / (2.*PI); // remap [-pi,pi] -> [0,1]
+            // animation mask
+            float mask = step( an, t );
+            vec3 c = O_COL * smoothstep(lineBlur, 0., sd) * mask;
+            color += c;
         }
     }
 }
@@ -428,9 +456,7 @@ void drawText(vec2 p, float bound, inout vec3 col) {
 
 void drawGameOver(vec2 p, vec3 emptyBoard, inout vec3 color) {
     // draw game over overlay
-    bool isFadingIn  = state == FADE_TO_WIN  || state == FADE_TO_LOSE  || state == FADE_TO_TIE;
-    bool isFadingOut = state == FADE_OUT_WIN || state == FADE_OUT_LOSE || state == FADE_OUT_TIE;
-    if (!isGameOver() && !isFadingIn && !isFadingOut) return;
+    if (!isGameOver() && !isFadingIn() && !isFadingOut()) return;
 
     vec3 col = color;
 
@@ -486,9 +512,8 @@ void drawGameOver(vec2 p, vec3 emptyBoard, inout vec3 color) {
         col = mix(textCol, col, smoothstep(-blur, +blur, sd));
     }
 
-    float tt = clamp( animateTime/ANIMATE_DURATION, 0., 1. );
-    color = isFadingIn  ? mix( color, col, tt ) :
-            isFadingOut ? mix( col, emptyBoard, tt ) : col;
+    color = isFadingIn()  ? mix( color, col, fadeTime() ) :
+            isFadingOut() ? mix( col, emptyBoard, fadeTime() ) : col;
     // vignette effect causes banding without this
     color += dither().x;
 }
